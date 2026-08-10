@@ -4,6 +4,10 @@
 
 Build a Go single-binary Redmine CLI optimized for AI agents such as Codex. The tool should make common issue workflows safe, parseable, and recoverable while remaining convenient enough for humans during development and debugging.
 
+Go was chosen for the implementation because the CLI needs to be easy for agents to install and invoke in many environments. A single binary avoids runtime dependency setup, while Go's HTTP, JSON, cross-compilation, and `httptest` support are enough for a typed Redmine client, stable output contract, and fake Redmine server tests.
+
+The implementation should keep the language/tooling choice aligned with that goal: prefer low-friction distribution and predictable shell execution over framework complexity.
+
 ## Primary User
 
 The primary user is an AI agent running shell commands in a non-interactive environment.
