@@ -10,6 +10,7 @@ AI 에이전트가 Redmine 이슈 작업을 안전하고 일관되게 실행할 
 
 - Go 1.24. `mise x go@1.24 -- ...`로 실행하거나, `PATH`에 직접 설치된 `go`를 사용할 수 있습니다. 현재 macOS 기준 검증된 개발 도구체인은 Go 1.24이며, `go.mod`의 언어 호환성 선언은 Go 1.22를 유지합니다.
 - 이 README의 명령을 그대로 실행하려면 `mise`가 `PATH`에 있어야 합니다.
+- `redmine` 바이너리를 둘 디렉터리가 `PATH`에 있어야 합니다. 빠른 시작에서는 `~/.local/bin`과 `export PATH="$HOME/.local/bin:$PATH"`를 사용합니다.
 - 쓰기 가능한 Go 빌드 캐시가 필요합니다. 제한된 셸에서는 Go 명령 앞에 `GOCACHE=/tmp/redmine-cli-go-cache`를 붙이세요.
 - Redmine 기본 URL, API 키, Redmine 서버에 접근할 수 있는 네트워크가 필요합니다.
 - 실행하려는 Redmine 작업에 필요한 권한을 가진 API 키가 필요합니다.
@@ -58,19 +59,24 @@ CLI를 빌드하고 한 번 로그인한 뒤, 매번 인증 환경변수를 설�
 
 ```bash
 GOCACHE=/tmp/redmine-cli-go-cache mise x go@1.24 -- go build -o redmine ./cmd/redmine
-./redmine --help
-./redmine --version
+mkdir -p "$HOME/.local/bin"
+install -m 755 redmine "$HOME/.local/bin/redmine"
+export PATH="$HOME/.local/bin:$PATH"
+redmine --help
+redmine --version
 ```
 
 명시적인 `GOCACHE`는 기본 Go 캐시에 쓸 수 없는 제한된 셸에서도 빌드가 되도록 합니다. 일반 Go 캐시에 쓸 수 있는 환경이라면 생략해도 됩니다.
+
+`export PATH=...` 줄은 현재 셸에서 `redmine` 명령을 찾을 수 있게 합니다. 새 터미널에서도 계속 사용하려면 `~/.local/bin`이 아직 `PATH`에 없을 때 같은 줄을 `~/.zshrc` 같은 shell profile에 추가하세요.
 
 ### 2. 한 번 로그인
 
 예시 URL을 실제 Redmine 설치의 기본 URL로 바꾸세요:
 
 ```bash
-./redmine auth login --url https://redmine.example.com
-./redmine auth status --format pretty-json
+redmine auth login --url https://redmine.example.com
+redmine auth status --format pretty-json
 ```
 
 `auth login`은 API 키를 검증한 뒤 URL과 키를 `0600` 권한의 CLI 설정 파일에 저장합니다. 성공한 status 응답에는 `"ok": true`와 `"authenticated": true`가 포함됩니다.
@@ -80,7 +86,7 @@ Redmine URL은 기본적으로 `https://`를 사용해야 합니다. 로컬 테�
 ### 3. 첫 조회 실행
 
 ```bash
-./redmine issue list --limit 5 --format pretty-json
+redmine issue list --limit 5 --format pretty-json
 ```
 
 로그인 후에는 `REDMINE_URL`과 `REDMINE_API_KEY`가 필요하지 않습니다. 목록이 완전하다고 판단하기 전에 `pagination.has_more`를 확인하세요.
@@ -147,9 +153,9 @@ Redmine URL은 기본적으로 `https://`를 사용해야 합니다. 로컬 테�
 로컬 사용에서는 저장형 로그인 흐름을 권장합니다:
 
 ```bash
-./redmine auth login --url https://redmine.example.com
-./redmine config show --format pretty-json
-./redmine auth status --format pretty-json
+redmine auth login --url https://redmine.example.com
+redmine config show --format pretty-json
+redmine auth status --format pretty-json
 ```
 
 `config show`는 API 키를 출력하지 않고 설정 파일 경로와 인증 정보 출처를 보고합니다.
@@ -168,7 +174,7 @@ CI에서는 명령이나 파일에 실제 키를 쓰지 말고 CI secret store�
 ```bash
 export REDMINE_URL="https://redmine.example.com"
 # REDMINE_API_KEY는 CI secret store가 주입합니다.
-./redmine issue list --limit 5 --format pretty-json
+redmine issue list --limit 5 --format pretty-json
 ```
 
 API 키를 `.env` 파일, 스크립트, 예시, 명령 기록, 프로세스 인자에 남기지 마세요. 실제 값을 `--api-key`에 직접 전달하는 것보다 `redmine auth login`, `REDMINE_API_KEY`, 또는 `auth login --stdin`을 선호하세요. 이 CLI는 `.env` 파일을 자동으로 로드하지 않습니다.
@@ -209,6 +215,19 @@ GOCACHE=/tmp/redmine-cli-go-cache mise x go@1.24 -- go run ./cmd/redmine --versi
 mise x go@1.24 -- go version
 ```
 
+### `redmine: command not found`
+
+빌드한 바이너리를 `PATH`에 있는 디렉터리에 설치한 뒤, 현재 셸의 `PATH`를 갱신하세요:
+
+```bash
+mkdir -p "$HOME/.local/bin"
+install -m 755 redmine "$HOME/.local/bin/redmine"
+export PATH="$HOME/.local/bin:$PATH"
+redmine --version
+```
+
+새 터미널에서도 `redmine`을 자동으로 찾게 하려면 `export PATH="$HOME/.local/bin:$PATH"`를 `~/.zshrc` 같은 shell profile에 추가하세요.
+
 ### Go cache `operation not permitted`
 
 `GOCACHE`를 쓰기 가능한 임시 디렉터리로 지정하세요:
@@ -234,8 +253,8 @@ GOCACHE=/tmp/redmine-cli-go-cache mise x go@1.24 -- go test ./...
 저장된 인증 정보를 갱신하고 검증한 뒤 명령을 다시 실행하세요:
 
 ```bash
-./redmine auth login --url https://redmine.example.com
-./redmine auth status --format pretty-json
+redmine auth login --url https://redmine.example.com
+redmine auth status --format pretty-json
 ```
 
 1회성 명령에서는 `REDMINE_URL`과 `REDMINE_API_KEY`, 또는 대응하는 `--url`과 `--api-key` 플래그를 사용하세요.
