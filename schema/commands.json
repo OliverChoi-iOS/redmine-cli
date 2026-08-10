@@ -1,0 +1,158 @@
+{
+  "version": 1,
+  "binary": "redmine",
+  "defaults": {
+    "format": "json",
+    "issue_list_status": "open",
+    "issue_list_sort": "updated_on:desc",
+    "issue_list_limit": 50,
+    "metadata_ttl": "24h",
+    "all_max_items": 1000
+  },
+  "commands": [
+    {
+      "name": "issue.list",
+      "argv": ["issue", "list"],
+      "risk": "read",
+      "flags": ["--project", "--project-id", "--status", "--status-id", "--tracker", "--tracker-id", "--priority", "--priority-id", "--assignee", "--assigned-to", "--assigned-to-id", "--author", "--author-id", "--updated-after", "--created-after", "--query", "--sort", "--limit", "--offset", "--all", "--max-items", "--param"]
+    },
+    {
+      "name": "issue.get",
+      "argv": ["issue", "get", "<id>"],
+      "risk": "read",
+      "flags": ["--include", "--full", "--with-notes"]
+    },
+    {
+      "name": "issue.create",
+      "argv": ["issue", "create"],
+      "risk": "low",
+      "flags": ["--project", "--project-id", "--tracker", "--tracker-id", "--subject", "--description", "--description-file", "--priority", "--priority-id", "--assignee", "--assigned-to", "--assigned-to-id", "--status", "--status-id", "--custom-field", "--custom-field-id", "--input", "--raw-json", "--dry-run"]
+    },
+    {
+      "name": "issue.update",
+      "argv": ["issue", "update", "<id>"],
+      "risk": "medium",
+      "flags": ["--set", "--custom-field", "--custom-field-id", "--raw-json", "--input", "--message", "--message-file", "--dry-run"]
+    },
+    {
+      "name": "issue.comment",
+      "argv": ["issue", "comment", "<id>"],
+      "risk": "low",
+      "flags": ["--message", "--message-file", "--message-format", "--provenance", "--dry-run"]
+    },
+    {
+      "name": "issue.assign",
+      "argv": ["issue", "assign", "<id>"],
+      "risk": "medium",
+      "flags": ["--to", "--message", "--message-file", "--dry-run"]
+    },
+    {
+      "name": "issue.transition",
+      "argv": ["issue", "transition", "<id>"],
+      "risk": "medium",
+      "flags": ["--to", "--message", "--message-file", "--dry-run"]
+    },
+    {
+      "name": "issue.close",
+      "argv": ["issue", "close", "<id>"],
+      "risk": "medium",
+      "flags": ["--to", "--message", "--message-file", "--dry-run"]
+    },
+    {
+      "name": "issue.reopen",
+      "argv": ["issue", "reopen", "<id>"],
+      "risk": "medium",
+      "flags": ["--to", "--message", "--message-file", "--dry-run"]
+    },
+    {
+      "name": "issue.link",
+      "argv": ["issue", "link", "<id>", "<target_id>"],
+      "risk": "low",
+      "flags": ["--relation", "--dry-run"]
+    },
+    {
+      "name": "project.list",
+      "argv": ["project", "list"],
+      "risk": "read",
+      "flags": ["--limit", "--offset", "--all", "--max-items"]
+    },
+    {
+      "name": "project.get",
+      "argv": ["project", "get", "<identifier_or_id>"],
+      "risk": "read",
+      "flags": []
+    },
+    {
+      "name": "user.me",
+      "argv": ["user", "me"],
+      "risk": "read",
+      "flags": []
+    },
+    {
+      "name": "user.search",
+      "argv": ["user", "search", "<query>"],
+      "risk": "read",
+      "flags": ["--limit", "--offset"]
+    },
+    {
+      "name": "meta.sync",
+      "argv": ["meta", "sync"],
+      "risk": "read",
+      "flags": ["--refresh"]
+    },
+    {
+      "name": "meta.statuses",
+      "argv": ["meta", "statuses"],
+      "risk": "read",
+      "flags": ["--refresh"]
+    },
+    {
+      "name": "meta.trackers",
+      "argv": ["meta", "trackers"],
+      "risk": "read",
+      "flags": ["--project", "--refresh"]
+    },
+    {
+      "name": "meta.priorities",
+      "argv": ["meta", "priorities"],
+      "risk": "read",
+      "flags": ["--refresh"]
+    },
+    {
+      "name": "meta.custom-fields",
+      "argv": ["meta", "custom-fields"],
+      "risk": "read",
+      "flags": ["--project", "--refresh"]
+    },
+    {
+      "name": "config.init",
+      "argv": ["config", "init"],
+      "risk": "local_write",
+      "flags": ["--url", "--default-project", "--metadata-ttl", "--close-status", "--reopen-status"]
+    },
+    {
+      "name": "config.show",
+      "argv": ["config", "show"],
+      "risk": "read",
+      "flags": []
+    },
+    {
+      "name": "auth.status",
+      "argv": ["auth", "status"],
+      "risk": "read",
+      "flags": []
+    },
+    {
+      "name": "auth.login",
+      "argv": ["auth", "login"],
+      "risk": "local_write",
+      "flags": ["--url", "--api-key", "--stdin", "--allow-insecure-http"]
+    },
+    {
+      "name": "auth.logout",
+      "argv": ["auth", "logout"],
+      "risk": "local_write",
+      "flags": []
+    }
+  ]
+}

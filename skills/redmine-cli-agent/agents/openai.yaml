@@ -1,0 +1,4 @@
+interface:
+  display_name: "Redmine CLI Agent"
+  short_description: "Use the local Redmine CLI safely"
+  default_prompt: "Use $redmine-cli-agent to inspect or update Redmine issues through the local CLI."
