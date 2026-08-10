@@ -10,6 +10,7 @@ This project is scoped as an issue-first CLI for Codex and other AI agents. The 
 
 - Go 1.24, either through `mise x go@1.24 -- ...` or as a direct `go` installation on `PATH`. Go 1.24 is the verified development toolchain on current macOS; the module keeps Go 1.22 language compatibility in `go.mod`.
 - `mise` on `PATH` when running the commands in this README exactly as written.
+- A directory for the `redmine` binary on `PATH`. The Quick Start uses `~/.local/bin` and `export PATH="$HOME/.local/bin:$PATH"`.
 - A writable Go build cache. In restricted shells, prefix Go commands with `GOCACHE=/tmp/redmine-cli-go-cache`.
 - A Redmine base URL, API key, and network access to the Redmine server.
 - An API key with permission for the Redmine operations you run.
@@ -58,19 +59,24 @@ From the repository root:
 
 ```bash
 GOCACHE=/tmp/redmine-cli-go-cache mise x go@1.24 -- go build -o redmine ./cmd/redmine
-./redmine --help
-./redmine --version
+mkdir -p "$HOME/.local/bin"
+install -m 755 redmine "$HOME/.local/bin/redmine"
+export PATH="$HOME/.local/bin:$PATH"
+redmine --help
+redmine --version
 ```
 
 The explicit `GOCACHE` makes the build work in restricted shells that cannot write to the default Go cache. You can omit it when your normal Go cache is writable.
+
+The `export PATH=...` line makes `redmine` available in the current shell. To keep it available in new terminals, add the same line to your shell profile, such as `~/.zshrc`, if `~/.local/bin` is not already on `PATH`.
 
 ### 2. Log in once
 
 Replace the example URL with the base URL of your Redmine installation:
 
 ```bash
-./redmine auth login --url https://redmine.example.com
-./redmine auth status --format pretty-json
+redmine auth login --url https://redmine.example.com
+redmine auth status --format pretty-json
 ```
 
 `auth login` verifies the API key and stores the URL and key in the CLI config file with `0600` permissions. A successful status response contains `"ok": true` and `"authenticated": true`.
@@ -80,7 +86,7 @@ Redmine URLs must use `https://` by default. For a local test server only, pass 
 ### 3. Run the first read
 
 ```bash
-./redmine issue list --limit 5 --format pretty-json
+redmine issue list --limit 5 --format pretty-json
 ```
 
 After login, `REDMINE_URL` and `REDMINE_API_KEY` are not required. Inspect `pagination.has_more` before assuming a list is complete.
@@ -147,9 +153,9 @@ This CLI currently targets one Redmine server.
 For local use, prefer the persistent login flow:
 
 ```bash
-./redmine auth login --url https://redmine.example.com
-./redmine config show --format pretty-json
-./redmine auth status --format pretty-json
+redmine auth login --url https://redmine.example.com
+redmine config show --format pretty-json
+redmine auth status --format pretty-json
 ```
 
 `config show` reports the config path and credential source without printing the API key.
@@ -168,7 +174,7 @@ For CI, inject `REDMINE_API_KEY` through the CI secret store rather than writing
 ```bash
 export REDMINE_URL="https://redmine.example.com"
 # REDMINE_API_KEY is injected by the CI secret store.
-./redmine issue list --limit 5 --format pretty-json
+redmine issue list --limit 5 --format pretty-json
 ```
 
 Do not commit API keys in `.env` files, scripts, examples, command history, or process-visible arguments. Prefer `redmine auth login`, `REDMINE_API_KEY`, or `auth login --stdin` over passing literal values to `--api-key`. This CLI does not automatically load `.env` files.
@@ -209,6 +215,19 @@ Run Go through the verified mise toolchain:
 mise x go@1.24 -- go version
 ```
 
+### `redmine: command not found`
+
+Install the built binary into a directory on `PATH`, then update `PATH` for the current shell:
+
+```bash
+mkdir -p "$HOME/.local/bin"
+install -m 755 redmine "$HOME/.local/bin/redmine"
+export PATH="$HOME/.local/bin:$PATH"
+redmine --version
+```
+
+Add `export PATH="$HOME/.local/bin:$PATH"` to your shell profile, such as `~/.zshrc`, if you want new terminals to find `redmine` automatically.
+
 ### Go cache `operation not permitted`
 
 Point `GOCACHE` at a writable temporary directory:
@@ -234,8 +253,8 @@ Use an `https://` Redmine URL for authenticated commands. For a local fake Redmi
 Refresh the stored credentials, verify them, and retry the command:
 
 ```bash
-./redmine auth login --url https://redmine.example.com
-./redmine auth status --format pretty-json
+redmine auth login --url https://redmine.example.com
+redmine auth status --format pretty-json
 ```
 
 For a one-off command, use `REDMINE_URL` and `REDMINE_API_KEY`, or the matching `--url` and `--api-key` flags.
