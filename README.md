@@ -197,6 +197,8 @@ reopen_status = "New"
 
 The CLI is implemented with the Go standard library and uses fake Redmine servers in tests for the main command contracts.
 
+Go was chosen because this CLI is meant to be installed quickly and called reliably by agents across different environments. A single binary keeps runtime setup small, while Go's standard `net/http`, `encoding/json`, cross-compilation support, and `httptest` package are enough for a typed Redmine client, stable JSON contract, and fake Redmine server tests.
+
 ```bash
 GOCACHE=/tmp/redmine-cli-go-cache mise x go@1.24 -- go test ./...
 GOCACHE=/tmp/redmine-cli-go-cache mise x go@1.24 -- go run ./cmd/redmine --help
