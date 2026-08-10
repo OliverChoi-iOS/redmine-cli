@@ -14,6 +14,22 @@ cmd/redmine
     -> internal/output
 ```
 
+## Implementation Choice
+
+The project uses Go as a single-binary CLI because the primary caller is an agent running shell commands across varied environments. The tool should be fast to install, predictable to execute, and free from runtime dependency setup during normal use.
+
+Go fits that constraint set:
+
+- Single-binary distribution keeps agent setup simple.
+- `net/http` and `encoding/json` are sufficient for a typed Redmine API client and stable JSON envelopes.
+- Cross-compilation supports future GitHub Releases binaries and Homebrew distribution.
+- `httptest` makes fake Redmine server tests straightforward.
+- The language is approachable for contributors while still providing enough type safety for request/response contracts.
+
+Rust was considered for stronger type guarantees and the `clap`/`serde` ecosystem. Go was chosen because initial implementation speed, contributor accessibility, and low-friction binary distribution were more important for this tool. Node and Python were avoided because agent environments more often run into runtime and dependency drift with those stacks.
+
+The original planning also assumed that name/ID resolution and metadata caching would be core to safe agent usage. That remains true: the resolver and cache layer let agents use human-readable Redmine names while still sending explicit IDs to Redmine when possible.
+
 ## Packages
 
 ### `cmd/redmine`
