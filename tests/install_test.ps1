@@ -18,7 +18,7 @@ try {
     function Invoke-RestMethod { return @{ tag_name = 'v0.1.0' } }
     function Invoke-WebRequest {
         param($Uri, $OutFile, [switch]$UseBasicParsing)
-        if ($script:failDownload) { throw 'Simulated download failure.' }
+        if ($failDownload) { throw 'Simulated download failure.' }
         if ($Uri -notlike 'https://github.com/OliverChoi-iOS/redmine-cli/releases/download/v0.1.0/*') {
             throw "Unexpected URL: $Uri"
         }
@@ -31,12 +31,21 @@ try {
     if ((& $target --version) -ne '0.1.0') { throw 'Installed version mismatch.' }
     $original = (Get-FileHash $target).Hash
     foreach ($failure in @('version', 'download', 'checksum', 'missing-checksum')) {
-        $script:failDownload = $failure -eq 'download'
+        $failDownload = $failure -eq 'download'
         $version = if ($failure -eq 'version') { 'bad' } else { 'v0.1.0' }
         if ($failure -eq 'checksum') { Add-Content $archivePath 'corrupt' }
         if ($failure -eq 'missing-checksum') { Set-Content $checksums '' }
         $failed = $false
-        try { & "$repoDir/install.ps1" -Version $version -InstallDir $installDir } catch { $failed = $true }
+        $expectedError = switch ($failure) {
+            'version' { 'Expected a stable version' }
+            'download' { 'Simulated download failure' }
+            'checksum' { 'Checksum verification failed' }
+            'missing-checksum' { 'Missing or invalid checksum' }
+        }
+        try { & "$repoDir/install.ps1" -Version $version -InstallDir $installDir } catch {
+            $failed = $true
+            if (-not $_.Exception.Message.Contains($expectedError)) { throw }
+        }
         if (-not $failed) { throw "Expected failure: $failure" }
         if ((Get-FileHash $target).Hash -ne $original) { throw 'Failed install changed the existing binary.' }
     }
