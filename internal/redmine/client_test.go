@@ -28,6 +28,20 @@ func TestNewRequestAddsAPIKey(t *testing.T) {
 	}
 }
 
+func TestNewRequestPreservesEscapedPathSegments(t *testing.T) {
+	client := New("https://redmine.example.com/redmine%20app", "key")
+	for _, title := range []string{"설치 가이드", "Guide#1?", "100% ready", "a/b"} {
+		req, err := client.NewRequest(http.MethodGet, "/projects/mobile/wiki/"+url.PathEscape(title)+".json")
+		if err != nil {
+			t.Fatal(err)
+		}
+		want := "https://redmine.example.com/redmine%20app/projects/mobile/wiki/" + url.PathEscape(title) + ".json"
+		if req.URL.String() != want {
+			t.Errorf("URL = %s, want %s", req.URL, want)
+		}
+	}
+}
+
 func TestNewRequestRejectsHTTPByDefault(t *testing.T) {
 	client := New("http://redmine.example.com", "key")
 	_, err := client.NewRequest("GET", "/issues.json")

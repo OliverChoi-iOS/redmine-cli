@@ -74,6 +74,7 @@ Responsibilities:
 - Decode successful responses.
 - Decode Redmine error responses.
 - Preserve unknown plugin fields as raw JSON where needed.
+- Stream binary uploads through the same authentication, redirect, bounded response, and error handling as JSON requests.
 
 Redmine remains authoritative for workflow and permission decisions.
 
@@ -127,6 +128,12 @@ Commands carry a risk level in `schema/commands.json`.
 - High risk: deferred or explicit confirmation in future versions.
 
 `--dry-run` validates inputs and name resolution without writing.
+
+Wiki `put` creates or updates a page. Existing pages are read before writing, and their version is sent with the update; an explicit `--page-version` protects changes made since a caller's earlier read. An omitted parent is preserved. Because creation uses the same PUT endpoint, creation can race with another writer.
+
+Issue attachments require two writes: upload bytes to obtain a token, then update the issue with that token. The CLI reports an uploaded file whose link was not confirmed; it does not automatically retry either write. Both wiki and attachment dry-runs validate local inputs without network requests. After a successful write, a failed final read produces a warning while preserving success.
+
+Spent-time registration uses a single POST with an explicit issue, decimal hours, activity ID, and work date. Its dry-run validates local inputs without network requests. Activities are fetched live without extending the metadata cache. Successful creation requires a returned entry ID; an unconfirmed response produces a warning to check Redmine before retrying, since repeating the command can create duplicate hours.
 
 ## Testing Strategy
 

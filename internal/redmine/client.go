@@ -191,7 +191,11 @@ func (c *Client) NewRequestWithContext(ctx context.Context, method, path string,
 		return nil, err
 	}
 	u := *base
-	u.Path = strings.TrimRight(base.Path, "/") + path
+	u.RawPath = strings.TrimRight(base.EscapedPath(), "/") + path
+	u.Path, err = url.PathUnescape(u.RawPath)
+	if err != nil {
+		return nil, err
+	}
 	u.RawQuery = ""
 	if query != nil {
 		u.RawQuery = query.Encode()
@@ -291,6 +295,10 @@ func (c *Client) Do(ctx context.Context, method, path string, query url.Values, 
 		}
 	}
 
+	return c.doRequest(req, out)
+}
+
+func (c *Client) doRequest(req *http.Request, out any) error {
 	resp, err := c.HTTP.Do(req)
 	if err != nil {
 		return mapTransportError(err)

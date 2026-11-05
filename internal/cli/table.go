@@ -19,6 +19,13 @@ func writeTable(w io.Writer, data any) error {
 			writeProjectsTable(tw, projects)
 		} else if users, ok := v["users"].([]redmine.User); ok {
 			writeUsersTable(tw, users)
+		} else if pages, ok := v["wiki_pages"].([]redmine.WikiPage); ok {
+			writeWikiTable(tw, pages)
+		} else if activities, ok := v["activities"].([]redmine.TimeEntryActivity); ok {
+			fmt.Fprintln(tw, "ID\tNAME\tDEFAULT")
+			for _, activity := range activities {
+				fmt.Fprintf(tw, "%d\t%s\t%t\n", activity.ID, tableCell(activity.Name), activity.IsDefault)
+			}
 		} else if items, ok := v["statuses"].([]cache.NamedID); ok {
 			writeNamedTable(tw, items)
 		} else if items, ok := v["trackers"].([]cache.NamedID); ok {
@@ -39,6 +46,15 @@ func writeTable(w io.Writer, data any) error {
 		writeProjectsTable(tw, []redmine.Project{v})
 	case redmine.User:
 		writeUsersTable(tw, []redmine.User{v})
+	case redmine.WikiPage:
+		writeWikiTable(tw, []redmine.WikiPage{v})
+	case redmine.TimeEntry:
+		issueID := ""
+		if v.Issue != nil {
+			issueID = fmt.Sprint(v.Issue.ID)
+		}
+		fmt.Fprintln(tw, "ID\tISSUE\tDATE\tHOURS\tACTIVITY\tCOMMENTS")
+		fmt.Fprintf(tw, "%d\t%s\t%s\t%g\t%s\t%s\n", v.ID, issueID, tableCell(v.SpentOn), v.Hours, tableCell(v.Activity.Name), tableCell(v.Comments))
 	case []redmine.Issue:
 		writeIssuesTable(tw, v)
 	case []redmine.Project:
@@ -51,6 +67,13 @@ func writeTable(w io.Writer, data any) error {
 		fmt.Fprintf(tw, "VALUE\n%s\n", tableCell(v))
 	}
 	return tw.Flush()
+}
+
+func writeWikiTable(w io.Writer, pages []redmine.WikiPage) {
+	fmt.Fprintln(w, "TITLE\tVERSION\tUPDATED")
+	for _, page := range pages {
+		fmt.Fprintf(w, "%s\t%d\t%s\n", tableCell(page.Title), page.Version, tableCell(page.UpdatedOn))
+	}
 }
 
 func writeIssuesTable(w io.Writer, issues []redmine.Issue) {

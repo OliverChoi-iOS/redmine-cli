@@ -60,6 +60,12 @@ var commandFlags = map[string]map[string]bool{
 	"issue link": {
 		"relation": true,
 	},
+	"issue attach":    {"file": true, "filename": true, "description": true, "content-type": true},
+	"wiki list":       {"project": true},
+	"wiki get":        {"project": true, "page-version": true, "include": true},
+	"wiki put":        {"project": true, "text": true, "text-file": true, "comments": true, "parent-title": true, "page-version": true},
+	"time create":     {"issue": true, "hours": true, "activity-id": true, "spent-on": true, "comments": true, "comments-file": true},
+	"time activities": {},
 	"project list": {
 		"limit": true, "offset": true, "all": true, "max-items": true,
 	},
@@ -279,6 +285,14 @@ func (a *app) dispatch() output.Envelope {
 		return a.handleIssueReopen(context.Background())
 	case "issue link":
 		return a.handleIssueLink(context.Background())
+	case "issue attach":
+		return a.handleIssueAttach(context.Background())
+	case "wiki list", "wiki get", "wiki put":
+		return a.handleWiki(context.Background())
+	case "time create":
+		return a.handleTimeCreate(context.Background())
+	case "time activities":
+		return a.handleTimeActivities(context.Background())
 	case "project list":
 		return a.handleProjectList(context.Background())
 	case "project get":
@@ -515,7 +529,9 @@ Usage:
   redmine <resource> <command> [arguments] [flags]
 
 Resources:
-  issue      list, get, create, update, comment, assign, transition, close, reopen, link
+  issue      list, get, create, update, comment, assign, transition, close, reopen, link, attach
+  wiki       list, get, put (create or update)
+  time       create, activities
   project    list, get
   user       me, search
   meta       sync, statuses, trackers, priorities, custom-fields
@@ -532,6 +548,19 @@ Global flags:
   --no-cache
   --dry-run
   --allow-insecure-http
+
+Wiki and attachments:
+  wiki list --project IDENTIFIER_OR_ID
+  wiki get TITLE --project IDENTIFIER_OR_ID [--page-version N] [--include attachments]
+  wiki put TITLE --project IDENTIFIER_OR_ID --text-file PATH [--comments TEXT] [--page-version N] [--dry-run]
+  issue attach ID --file PATH [--filename NAME] [--description TEXT] [--content-type TYPE] [--dry-run]
+  wiki put creates missing pages and checks the current version when updating existing pages.
+
+Spent time:
+  time activities
+  time create --issue ID --hours N --activity-id ID --spent-on YYYY-MM-DD [--comments TEXT | --comments-file PATH] [--dry-run]
+  Hours are decimal hours: 1.5 means 90 minutes. Comments allow at most 255 characters.
+  Work date and activity ID are required. Entries are created for the authenticated user.
 
 Auth:
   auth login stores URL and API key in the config file with 0600 permissions.

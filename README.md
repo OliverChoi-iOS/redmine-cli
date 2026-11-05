@@ -105,6 +105,12 @@ Included:
 - `redmine issue close`
 - `redmine issue reopen`
 - `redmine issue link`
+- `redmine issue attach`
+- `redmine wiki list`
+- `redmine wiki get`
+- `redmine wiki put`
+- `redmine time create`
+- `redmine time activities`
 - `redmine project list`
 - `redmine project get`
 - `redmine user me`
@@ -120,13 +126,53 @@ Included:
 - `redmine auth logout`
 - `redmine auth status`
 
+## Wiki pages and issue attachments
+
+Use a project identifier or numeric ID for `--project`; omitting it uses `default_project`.
+
+```bash
+redmine wiki list --project mobile
+redmine wiki get "GettingStarted" --project mobile --include attachments
+redmine wiki put "GettingStarted" --project mobile --text-file guide.redmine --comments "Update setup" --dry-run
+# Remove --dry-run to create or update the page.
+redmine wiki put "GettingStarted" --project mobile --text-file guide.redmine --page-version 4
+redmine issue attach 123 --file evidence.png --description "Reproduction screenshot" --dry-run
+# Remove --dry-run to upload and attach the file.
+```
+
+`wiki put` sends the supplied text as Redmine wiki syntax without conversion. It creates missing pages and replaces existing page text. When updating, it fetches and sends the current version to detect concurrent edits during the command. Pass the version you originally read as `--page-version N` to also protect edits made since that read; a stale version returns `conflict` (exit 7). `wiki get --page-version N` reads historical content. Existing parent pages are preserved unless `--parent-title` is supplied; `--parent-title ""` makes a root page. An initial create can race with another writer because the API uses the same PUT endpoint for creation and updates.
+
+`issue attach` requires a non-empty regular file and uploads one file per command. `--filename` changes its remote name; `--content-type` overrides the MIME type inferred from the extension (otherwise `application/octet-stream`). Server size limits and permissions apply. Redmine 7.1+ detects content types itself. Uploading and linking are separate requests: a linking error includes `error.details.upload_completed` and `attachment_link_confirmed: false`. Check the issue before retrying, since a retry uploads again and may duplicate an attachment if the original response was lost. A failed link may leave an unused upload on the server.
+
+Both write commands validate local input without contacting Redmine under `--dry-run`; server permissions, the automatic wiki version, and existing parent are checked during execution. Successful writes return `before`/`after` where available. If only the final read fails, `ok` remains true with a warning; do not repeat the write just to fetch its result.
+
+API references: [Wiki pages](https://www.redmine.org/projects/redmine/wiki/Rest_WikiPages), [attaching files](https://www.redmine.org/projects/redmine/wiki/Rest_api#Attaching-files).
+
+## Log spent time
+
+List activity IDs, then create an entry for an issue as the authenticated user:
+
+```bash
+redmine time activities --format pretty-json
+redmine time create --issue 123 --hours 1.5 --activity-id 9 --spent-on 2026-11-05 --comments "Fix login bug" --dry-run
+# Replace 9 with an activity ID from your server. Remove --dry-run to register the entry.
+```
+
+`--issue`, `--hours`, `--activity-id`, and `--spent-on` are required. Hours must be a positive finite number in hours (`1.5` is 90 minutes); dates use `YYYY-MM-DD`. Explicit dates and activity IDs prevent unintended server defaults. Optional `--comments` or `--comments-file PATH` accepts at most 255 characters, including file line breaks. `--dry-run` validates local input and returns `data.request` without contacting Redmine.
+
+Successful registration returns the created entry, including its ID, hours, work date, user, and activity. This records actual spent time; it does not change `estimated_hours`. Redmine enforces logging permissions, project activity settings, required custom fields, and hour/date limits. Activity IDs are read directly from `/enumerations/time_entry_activities.json`, without the metadata cache.
+
+Each execution creates a new entry. The CLI does not automatically retry; after a network error or an unconfirmed response, inspect the issue's spent-time entries in Redmine before retrying to avoid duplicate hours. Time entry listing, editing, deletion, project-only entries, and logging on behalf of another user are not supported yet.
+
+API references: [Time entries](https://www.redmine.org/projects/redmine/wiki/Rest_TimeEntries), [activity enumeration](https://www.redmine.org/projects/redmine/wiki/Rest_Enumerations#enumerationstime_entry_activitiesformat).
+
 ## Limitations
 
 - HTTPS is required by default. `--allow-insecure-http` is a one-run local/test escape hatch and prints a warning because API keys may be sent over cleartext HTTP.
 - Credentials are stored in the CLI config file with `0600` permissions. OS keychain integration is not supported yet.
 - One Redmine server/profile is supported. Multiple Redmine profiles are not supported yet.
-- File uploads are not supported yet, including issue attachment upload/download.
-- Admin APIs, wiki editing, time tracking, repository APIs, and bulk/destructive operations are not supported yet.
+- File downloads, wiki attachments, and project Files uploads are not supported yet. `issue attach` uploads one file per invocation.
+- Admin APIs, repository APIs, and bulk/destructive operations are not supported yet. Time entry registration is supported; listing, editing, and deletion are not.
 - Comments are sent as Redmine syntax. Markdown-to-Redmine conversion is not supported yet.
 - `.env` files are not loaded automatically. Use `redmine auth login` for local use, or `REDMINE_URL` and `REDMINE_API_KEY` for CI and one-off overrides.
 

@@ -40,6 +40,18 @@ Issue commands:
 - `issue close`
 - `issue reopen`
 - `issue link`
+- `issue attach`
+
+Wiki commands:
+
+- `wiki list`
+- `wiki get`
+- `wiki put` (create or update)
+
+Spent-time commands:
+
+- `time create` (issue, decimal hours, activity ID, explicit work date, optional comments)
+- `time activities` (live activity ID discovery)
 
 Discovery commands:
 
@@ -63,12 +75,11 @@ Configuration commands:
 
 ## Deferred Features
 
-- Attachments upload/download
+- File downloads, wiki attachments, and project Files uploads
 - Multiple profiles
 - OS keychain login
 - Admin APIs
-- Wiki editing
-- Time tracking
+- Time entry listing, editing, deletion, project-only entries, and logging for another user
 - Bulk operations
 - Destructive operations
 - Markdown conversion
@@ -147,6 +158,8 @@ Low risk:
 - `issue comment`
 - `issue create`
 - `issue link`
+- `issue attach`
+- `time create`
 
 Medium risk:
 
@@ -155,6 +168,7 @@ Medium risk:
 - `issue transition`
 - `issue close`
 - `issue reopen`
+- `wiki put`
 
 High risk:
 

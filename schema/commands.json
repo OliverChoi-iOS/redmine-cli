@@ -71,6 +71,42 @@
       "flags": ["--relation", "--dry-run"]
     },
     {
+      "name": "issue.attach",
+      "argv": ["issue", "attach", "<id>"],
+      "risk": "low",
+      "flags": ["--file", "--filename", "--description", "--content-type", "--dry-run"]
+    },
+    {
+      "name": "wiki.list",
+      "argv": ["wiki", "list"],
+      "risk": "read",
+      "flags": ["--project"]
+    },
+    {
+      "name": "wiki.get",
+      "argv": ["wiki", "get", "<title>"],
+      "risk": "read",
+      "flags": ["--project", "--page-version", "--include"]
+    },
+    {
+      "name": "wiki.put",
+      "argv": ["wiki", "put", "<title>"],
+      "risk": "medium",
+      "flags": ["--project", "--text", "--text-file", "--comments", "--parent-title", "--page-version", "--dry-run"]
+    },
+    {
+      "name": "time.create",
+      "argv": ["time", "create"],
+      "risk": "low",
+      "flags": ["--issue", "--hours", "--activity-id", "--spent-on", "--comments", "--comments-file", "--dry-run"]
+    },
+    {
+      "name": "time.activities",
+      "argv": ["time", "activities"],
+      "risk": "read",
+      "flags": []
+    },
+    {
       "name": "project.list",
       "argv": ["project", "list"],
       "risk": "read",

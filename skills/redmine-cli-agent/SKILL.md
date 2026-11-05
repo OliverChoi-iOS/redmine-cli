@@ -1,6 +1,6 @@
 ---
 name: redmine-cli-agent
-description: Configure and use this repository's agent-first Redmine CLI safely. Use when Codex needs to build the local `redmine` binary, run `redmine auth login/logout/status`, inspect, list, create, update, transition, close, reopen, link, or comment on Redmine issues; manage stored Redmine URL/API-key credentials; sync metadata; resolve Redmine project/status/tracker/priority/user names; handle JSON envelopes, pagination, dry-runs, warnings, stable error codes, HTTPS-only URL validation, and Redmine CLI/API failures.
+description: Configure and use this repository's agent-first Redmine CLI safely. Use when Codex needs to build the local `redmine` binary, manage authentication, work with Redmine issues and their file attachments, list/read/write wiki pages, log spent time, discover time activities, sync metadata, resolve names, or handle JSON envelopes, pagination, dry-runs, warnings, stable error codes, and Redmine CLI/API failures.
 ---
 
 # Redmine CLI Agent
@@ -128,12 +128,27 @@ After dry-run, check `data.request` for resolved IDs and only then run without `
 
 Use `--message-file` or `--description-file` for long text. Keep files free of API keys and other secrets.
 
+## Wiki Pages and Attachments
+
+Use `wiki list/get/put` for wiki work and `issue attach` for file uploads. Read [references/commands.md](references/commands.md#wiki-pages-and-attachments) for syntax and failure handling.
+
+`wiki put` replaces page text or creates a missing page. When editing content read earlier, pass its `--page-version` to detect stale edits. If the server reports `conflict`, re-read and reconcile the content before writing again.
+
+Uploading and linking to the issue are separate writes. If linking is not confirmed, inspect the issue before retrying; retrying uploads again and can duplicate an attachment after a lost response. An after-state fetch warning alone does not mean the write failed.
+
+## Spent Time
+
+Use `time activities` to discover activity IDs, then `time create` to log hours on an issue as the authenticated user. Pass the issue, decimal hours, activity ID, and work date explicitly. Read [references/commands.md](references/commands.md#spent-time) for syntax and limits.
+
+Each execution creates an entry. After an unconfirmed response, inspect the issue's spent-time entries in Redmine before retrying to avoid recording duplicate hours. Do not treat setting `estimated_hours` as logging actual work.
+
 ## Current Limitations
 
-- File uploads are not supported yet, including issue attachment upload/download.
+- File downloads, wiki attachments, and project Files uploads are not supported yet. `issue attach` accepts one file per invocation.
 - OS keychain integration is not supported yet.
 - Multiple Redmine profiles are not supported yet.
-- Admin APIs, wiki editing, time tracking, repository APIs, and bulk/destructive operations are not supported yet.
+- Time entry listing, editing, deletion, project-only entries, and logging for another user are not supported yet.
+- Admin APIs, repository APIs, and bulk/destructive operations are not supported yet.
 - Markdown-to-Redmine conversion is not supported.
 - `.env` files are not loaded automatically.
 

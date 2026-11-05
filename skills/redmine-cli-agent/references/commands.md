@@ -84,7 +84,34 @@ redmine issue get 123 --with-notes --format pretty-json
 redmine issue get 123 --include journals,attachments,relations,children --format pretty-json
 ```
 
-`attachments` in `--include` fetches attachment metadata exposed by Redmine. File upload/download is not supported.
+`attachments` in `--include` fetches attachment metadata exposed by Redmine. Use `issue attach` to upload a file. File downloads are not supported.
+
+## Wiki Pages and Attachments
+
+```bash
+redmine wiki list --project mobile --format pretty-json
+redmine wiki get Guide --project mobile --include attachments --format pretty-json
+redmine wiki get Guide --project mobile --page-version 3 --format pretty-json
+redmine wiki put Guide --project mobile --text-file guide.redmine --comments "Update guide" --page-version 3 --dry-run --format pretty-json
+redmine issue attach 123 --file evidence.png --description "Reproduction" --dry-run --format pretty-json
+```
+
+Remove `--dry-run` to write. Wiki `--project` accepts an identifier or numeric ID and defaults to `default_project`. `wiki put` creates a missing page or replaces its text. Use `--text` or `--text-file` for Redmine wiki syntax. Pass the version read previously as `--page-version` to protect against stale edits; a mismatch returns `conflict` (exit 7). Without it, the command fetches the current version just before writing. `--parent-title TITLE` changes the parent; an empty title makes a root page. Omission preserves the existing parent. Creation uses the same PUT endpoint as updating and can race with another writer.
+
+`issue attach` accepts one non-empty regular file. `--filename` changes the remote name and `--content-type` overrides the inferred MIME type. Size and permission limits come from Redmine. If the issue update fails after upload, the result reports `upload_completed: true` and `attachment_link_confirmed: false` in `error.details`; inspect the issue before retrying because the original update may have succeeded despite a lost response. Retrying uploads again and can duplicate attachments; unused uploads may remain on the server.
+
+Dry-runs validate local input without server requests; server permissions and automatic wiki version/parent resolution happen only during execution. A successful write with a failed final fetch returns `ok: true` plus a warning. Fetch the result again instead of repeating the write.
+
+## Spent Time
+
+```bash
+redmine time activities --format pretty-json
+redmine time create --issue 123 --hours 1.5 --activity-id 9 --spent-on 2026-11-05 --comments "Fix login bug" --dry-run --format pretty-json
+```
+
+Replace the activity ID with one from the server. Inspect `data.request`, then remove `--dry-run` to register the entry. The issue, positive decimal hours, activity ID, and `YYYY-MM-DD` work date are required. `1.5` hours means 90 minutes. Optional `--comments` or `--comments-file PATH` accepts up to 255 characters including line breaks. A dry-run makes no network requests; permissions, project settings, and server limits are checked when writing.
+
+Registration uses the authenticated user and returns the created entry, including its ID. Activities are fetched live without the metadata cache. This records actual hours and does not change the issue's `estimated_hours`. Each execution creates a new entry; after an uncertain response, check the issue's spent-time entries in Redmine before retrying. The CLI does not automatically retry and cannot yet list, edit, or delete time entries, log to a project without an issue, or log for another user.
 
 ## Comments
 
