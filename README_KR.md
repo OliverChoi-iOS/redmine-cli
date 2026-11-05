@@ -8,67 +8,52 @@ AI 에이전트가 Redmine 이슈 작업을 안전하고 일관되게 실행할 
 
 ## 사전 요구사항
 
-- Go 1.24. `mise x go@1.24 -- ...`로 실행하거나, `PATH`에 직접 설치된 `go`를 사용할 수 있습니다. 현재 macOS 기준 검증된 개발 도구체인은 Go 1.24이며, `go.mod`의 언어 호환성 선언은 Go 1.22를 유지합니다.
-- 이 README의 명령을 그대로 실행하려면 `mise`가 `PATH`에 있어야 합니다.
+- 릴리스 바이너리 사용에는 Go나 mise가 필요하지 않습니다. Go는 [개발](#개발)할 때만 필요합니다.
 - `redmine` 바이너리를 둘 디렉터리가 `PATH`에 있어야 합니다. 빠른 시작에서는 `~/.local/bin`과 `export PATH="$HOME/.local/bin:$PATH"`를 사용합니다.
-- 쓰기 가능한 Go 빌드 캐시가 필요합니다. 제한된 셸에서는 Go 명령 앞에 `GOCACHE=/tmp/redmine-cli-go-cache`를 붙이세요.
+- macOS/Linux: `curl`, `tar`, `sha256sum` 또는 `shasum`이 필요합니다. Windows: PowerShell 5.1 이상이 필요합니다.
 - Redmine 기본 URL, API 키, Redmine 서버에 접근할 수 있는 네트워크가 필요합니다.
 - 실행하려는 Redmine 작업에 필요한 권한을 가진 API 키가 필요합니다.
 - 일반 사용에서는 `https://` Redmine URL을 사용해야 합니다. `http://`는 기본 차단되며, 로컬 fake/test 서버에서만 `--allow-insecure-http`로 1회성 허용할 수 있습니다.
 
-### mise와 Go 설치
-
-macOS 권장 설치:
-
-```bash
-brew install mise
-mise install go@1.24
-mise x go@1.24 -- go version
-```
-
-Homebrew를 사용할 수 없다면 사용하는 셸에 맞는 공식 mise installer를 사용하세요:
-
-```bash
-curl https://mise.run/zsh | sh
-exec zsh
-mise install go@1.24
-mise x go@1.24 -- go version
-```
-
-mise 없이 Go를 직접 설치하려면:
-
-```bash
-brew install go
-go version
-```
-
-Homebrew의 Go 패키지는 검증된 Go 1.24보다 새로운 버전을 설치할 수 있습니다. README 명령을 정확히 재현해야 한다면 `mise x go@1.24 -- ...` 명령을 사용하세요.
-
-공식 참고 문서:
-
-- [mise installation methods](https://mise.jdx.dev/installing-mise.html)
-- [Go download and install guide](https://go.dev/doc/install)
-
 ## 빠른 시작
 
-CLI를 빌드하고 한 번 로그인한 뒤, 매번 인증 환경변수를 설정하지 않고 Redmine 명령을 실행합니다.
+CLI를 설치하고 한 번 로그인한 뒤 Redmine 명령을 실행합니다.
 
-### 1. CLI 빌드
+### 1. CLI 설치
 
-저장소 루트에서 실행합니다:
+macOS와 Linux (Intel/AMD64 또는 ARM64):
 
 ```bash
-GOCACHE=/tmp/redmine-cli-go-cache mise x go@1.24 -- go build -o redmine ./cmd/redmine
-mkdir -p "$HOME/.local/bin"
-install -m 755 redmine "$HOME/.local/bin/redmine"
+curl -fsSL https://github.com/OliverChoi-iOS/redmine-cli/releases/latest/download/install.sh -o install.sh
+sh install.sh
 export PATH="$HOME/.local/bin:$PATH"
-redmine --help
 redmine --version
 ```
 
-명시적인 `GOCACHE`는 기본 Go 캐시에 쓸 수 없는 제한된 셸에서도 빌드가 되도록 합니다. 일반 Go 캐시에 쓸 수 있는 환경이라면 생략해도 됩니다.
+설치 스크립트는 압축 파일의 SHA-256 체크섬과 바이너리 버전을 확인한 뒤 `~/.local/bin`에 설치합니다. 다운로드한 스크립트는 실행 전에 확인하세요. 다시 실행하면 업데이트되며 인증 설정은 유지됩니다. 새 터미널에서도 사용하려면 `export PATH=...` 줄을 `~/.zshrc` 같은 셸 설정 파일에 추가하세요.
 
-`export PATH=...` 줄은 현재 셸에서 `redmine` 명령을 찾을 수 있게 합니다. 새 터미널에서도 계속 사용하려면 `~/.local/bin`이 아직 `PATH`에 없을 때 같은 줄을 `~/.zshrc` 같은 shell profile에 추가하세요.
+버전이나 설치 경로를 지정할 수도 있습니다:
+
+```bash
+VERSION=v0.1.0 INSTALL_DIR="$HOME/.local/bin" sh install.sh
+```
+
+Windows PowerShell (AMD64 또는 ARM64):
+
+```powershell
+Invoke-WebRequest https://github.com/OliverChoi-iOS/redmine-cli/releases/latest/download/install.ps1 -OutFile install.ps1
+& ./install.ps1
+$env:Path = "$env:LOCALAPPDATA\redmine-cli\bin;$env:Path"
+redmine --version
+```
+
+기본 설치 위치는 `%LOCALAPPDATA%\redmine-cli\bin`입니다. 새 터미널에서도 사용하려면 사용자 PATH에 이 경로를 추가하세요. `./install.ps1 -Version v0.1.0 -InstallDir C:\Tools\redmine`으로 버전과 경로를 지정할 수 있습니다. 스크립트 실행이 제한된 환경에서는 조직의 PowerShell 실행 정책을 따르세요.
+
+Windows 지원은 실험적입니다. 현재 인증 저장 코드는 Unix 파일 권한을 전제로 하므로, Windows에서는 `auth login` 대신 `REDMINE_URL`과 안전하게 주입한 `REDMINE_API_KEY`를 사용하세요.
+
+[Releases](https://github.com/OliverChoi-iOS/redmine-cli/releases)에서 압축 파일을 직접 다운로드하고 `checksums.txt`와 대조한 뒤 `redmine` 또는 `redmine.exe`를 PATH에 설치할 수도 있습니다. 다운로드는 첫 정식 릴리스를 게시한 후 사용할 수 있습니다. 체크섬은 다운로드 손상을 검출하며 릴리스 서명은 아직 구성하지 않았습니다.
+
+삭제하려면 설치된 바이너리를 지우세요. 설정과 캐시는 남습니다.
 
 ### 2. 한 번 로그인
 
@@ -241,6 +226,15 @@ reopen_status = "New"
 
 ## 개발
 
+검증된 개발 도구체인은 Go 1.24이며 `go.mod`는 Go 1.22 언어 호환성을 유지합니다. [Go 설치 가이드](https://go.dev/doc/install)를 따라 직접 설치하거나 [mise](https://mise.jdx.dev/installing-mise.html)를 사용하세요:
+
+```bash
+brew install mise
+mise install go@1.24
+GOCACHE=/tmp/redmine-cli-go-cache mise x go@1.24 -- go build -o redmine ./cmd/redmine
+./redmine --version
+```
+
 CLI는 Go 표준 라이브러리로 구현되어 있으며, 주요 명령 계약 테스트에는 fake Redmine 서버를 사용합니다.
 
 Go를 선택한 이유는 이 CLI가 여러 환경에서 에이전트에 의해 빠르게 설치되고 안정적으로 호출되어야 하기 때문입니다. 단일 바이너리 배포는 런타임 설정 부담을 줄이고, Go 표준 라이브러리의 `net/http`, `encoding/json`, cross-compilation 지원, `httptest`만으로도 typed Redmine client, 안정적인 JSON 계약, fake Redmine server 테스트를 충분히 구현할 수 있습니다.
@@ -252,6 +246,22 @@ GOCACHE=/tmp/redmine-cli-go-cache mise x go@1.24 -- go run ./cmd/redmine --versi
 ```
 
 구현은 `schema/output.schema.json`의 JSON 출력 계약을 안정적으로 유지해야 합니다.
+
+### 릴리스 게시
+
+릴리스 워크플로와 설치 스크립트를 `main`에 커밋한 뒤 새 정식 버전 태그를 푸시하세요. `v0.1.0`은 아직 사용하지 않은 다음 버전으로 바꾸세요:
+
+```bash
+git push origin main
+git tag v0.1.0
+git push origin v0.1.0
+```
+
+[Release Actions](https://github.com/OliverChoi-iOS/redmine-cli/actions/workflows/release.yml)가 macOS·Linux·Windows에서 테스트하고, CGO 없이 6종 바이너리(darwin/linux/windows × amd64/arm64)를 빌드합니다. 압축 파일, 두 설치 스크립트, `checksums.txt`, 자동 생성 릴리스 노트를 게시하며 `redmine --version`은 태그에서 `v`를 뺀 값을 출력합니다. Unix에서는 전체 Go 테스트를 실행하고, Windows에서는 Unix 권한을 전제로 하는 인증 저장 테스트 대신 이식 가능한 패키지·버전 명령·설치 스크립트를 검증합니다. `vMAJOR.MINOR.PATCH` 형식의 정식 버전만 지원합니다.
+
+워크플로는 `contents: write` 권한의 기본 `GITHUB_TOKEN`을 사용하므로 별도 PAT가 필요하지 않습니다. 게시 도중 실패하면 초안 릴리스가 남을 수 있으니 GitHub Releases에서 확인한 뒤 재시도하세요. 게시된 릴리스를 덮어쓰지는 않습니다.
+
+설치 스크립트의 오프라인 테스트는 `sh tests/install_test.sh`, Windows에서는 Go를 설치한 뒤 `./tests/install_test.ps1`로 실행합니다.
 
 ## 문제 해결
 
@@ -265,11 +275,9 @@ mise x go@1.24 -- go version
 
 ### `redmine: command not found`
 
-빌드한 바이너리를 `PATH`에 있는 디렉터리에 설치한 뒤, 현재 셸의 `PATH`를 갱신하세요:
+릴리스 설치 스크립트를 사용했다면 현재 셸의 `PATH`를 갱신하세요:
 
 ```bash
-mkdir -p "$HOME/.local/bin"
-install -m 755 redmine "$HOME/.local/bin/redmine"
 export PATH="$HOME/.local/bin:$PATH"
 redmine --version
 ```

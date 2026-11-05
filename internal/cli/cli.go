@@ -16,7 +16,8 @@ import (
 	"redmine-cli/internal/redmine"
 )
 
-const Version = "0.1.0-dev"
+// Version is set from the release tag using -ldflags at build time.
+var Version = "0.1.0-dev"
 
 const defaultAllMaxItems = 1000
 

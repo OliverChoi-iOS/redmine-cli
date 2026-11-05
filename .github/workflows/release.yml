@@ -1,0 +1,90 @@
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  test:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6
+        with:
+          go-version: '1.24.x'
+      - name: Test all packages (Unix config permissions)
+        if: runner.os != 'Windows'
+        run: go test ./...
+      - name: Test portable packages on Windows
+        if: runner.os == 'Windows'
+        run: |
+          go test ./internal/cache ./internal/output ./internal/redmine ./internal/resolver
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          go test ./internal/cli -run '^TestRunVersion$'
+      - name: Test Unix installer
+        if: runner.os != 'Windows'
+        run: sh tests/install_test.sh
+      - name: Test Windows installer
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: ./tests/install_test.ps1
+
+  release:
+    needs: test
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6
+        with:
+          go-version: '1.24.x'
+      - name: Build archives and checksums
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          [[ "$RELEASE_TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo 'Use a stable vMAJOR.MINOR.PATCH tag'; exit 1; }
+          version="${RELEASE_TAG#v}"
+          mkdir -p dist
+          for os in darwin linux windows; do
+            for arch in amd64 arm64; do
+              stage="$(mktemp -d)"
+              binary=redmine
+              if [ "$os" = windows ]; then binary=redmine.exe; fi
+              CGO_ENABLED=0 GOOS="$os" GOARCH="$arch" go build -trimpath \
+                -ldflags "-s -w -X redmine-cli/internal/cli.Version=$version" \
+                -o "$stage/$binary" ./cmd/redmine
+              archive="redmine-cli_${version}_${os}_${arch}"
+              if [ "$os" = windows ]; then
+                (cd "$stage" && zip "$GITHUB_WORKSPACE/dist/$archive.zip" "$binary")
+              else
+                tar -czf "dist/$archive.tar.gz" -C "$stage" "$binary"
+              fi
+              rm -r "$stage"
+            done
+          done
+          cp install.sh install.ps1 dist/
+          (cd dist && sha256sum *.tar.gz *.zip install.sh install.ps1 > checksums.txt)
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          gh release create "$RELEASE_TAG" dist/* --verify-tag --generate-notes --draft
+          gh release edit "$RELEASE_TAG" --draft=false

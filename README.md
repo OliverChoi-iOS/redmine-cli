@@ -8,67 +8,52 @@ This project is scoped as an issue-first CLI for Codex and other AI agents. The 
 
 ## Requirements
 
-- Go 1.24, either through `mise x go@1.24 -- ...` or as a direct `go` installation on `PATH`. Go 1.24 is the verified development toolchain on current macOS; the module keeps Go 1.22 language compatibility in `go.mod`.
-- `mise` on `PATH` when running the commands in this README exactly as written.
+- No Go or mise installation is needed for release binaries. Go is only needed for [development](#development).
 - A directory for the `redmine` binary on `PATH`. The Quick Start uses `~/.local/bin` and `export PATH="$HOME/.local/bin:$PATH"`.
-- A writable Go build cache. In restricted shells, prefix Go commands with `GOCACHE=/tmp/redmine-cli-go-cache`.
+- macOS/Linux: `curl`, `tar`, and `sha256sum` or `shasum`. Windows: PowerShell 5.1 or later.
 - A Redmine base URL, API key, and network access to the Redmine server.
 - An API key with permission for the Redmine operations you run.
 - An `https://` Redmine URL for normal use. `http://` is blocked by default and should only be used for local fake/test servers with `--allow-insecure-http`.
 
-### Install mise and Go
-
-Recommended macOS setup:
-
-```bash
-brew install mise
-mise install go@1.24
-mise x go@1.24 -- go version
-```
-
-If Homebrew is not available, use the official mise installer for your shell:
-
-```bash
-curl https://mise.run/zsh | sh
-exec zsh
-mise install go@1.24
-mise x go@1.24 -- go version
-```
-
-If you prefer a direct Go installation without mise:
-
-```bash
-brew install go
-go version
-```
-
-The direct Homebrew Go package may install a newer Go release than the verified Go 1.24 toolchain. If you need to reproduce the README commands exactly, use the `mise x go@1.24 -- ...` commands.
-
-Official references:
-
-- [mise installation methods](https://mise.jdx.dev/installing-mise.html)
-- [Go download and install guide](https://go.dev/doc/install)
-
 ## Quick Start
 
-Build the CLI, authenticate once, and then run Redmine commands without setting credential environment variables for every invocation.
+Install the CLI, authenticate once, and run Redmine commands.
 
-### 1. Build the CLI
+### 1. Install the CLI
 
-From the repository root:
+macOS and Linux (Intel/AMD64 or ARM64):
 
 ```bash
-GOCACHE=/tmp/redmine-cli-go-cache mise x go@1.24 -- go build -o redmine ./cmd/redmine
-mkdir -p "$HOME/.local/bin"
-install -m 755 redmine "$HOME/.local/bin/redmine"
+curl -fsSL https://github.com/OliverChoi-iOS/redmine-cli/releases/latest/download/install.sh -o install.sh
+sh install.sh
 export PATH="$HOME/.local/bin:$PATH"
-redmine --help
 redmine --version
 ```
 
-The explicit `GOCACHE` makes the build work in restricted shells that cannot write to the default Go cache. You can omit it when your normal Go cache is writable.
+The installer verifies the archive's SHA-256 checksum and version, then installs to `~/.local/bin`. Review the downloaded script before running it. Re-run it to update; authentication settings are preserved. Add the `export PATH=...` line to your shell profile (for example, `~/.zshrc`) for new terminals.
 
-The `export PATH=...` line makes `redmine` available in the current shell. To keep it available in new terminals, add the same line to your shell profile, such as `~/.zshrc`, if `~/.local/bin` is not already on `PATH`.
+To select a version or destination:
+
+```bash
+VERSION=v0.1.0 INSTALL_DIR="$HOME/.local/bin" sh install.sh
+```
+
+Windows PowerShell (AMD64 or ARM64):
+
+```powershell
+Invoke-WebRequest https://github.com/OliverChoi-iOS/redmine-cli/releases/latest/download/install.ps1 -OutFile install.ps1
+& ./install.ps1
+$env:Path = "$env:LOCALAPPDATA\redmine-cli\bin;$env:Path"
+redmine --version
+```
+
+The default destination is `%LOCALAPPDATA%\redmine-cli\bin`. Add it to your user PATH for new terminals. Use `./install.ps1 -Version v0.1.0 -InstallDir C:\Tools\redmine` to customize installation. Follow your organization's PowerShell execution policy if script execution is restricted.
+
+Windows support is experimental: saved authentication currently requires Unix permission semantics. Use `REDMINE_URL` and a securely injected `REDMINE_API_KEY` instead of `auth login` on Windows.
+
+You can also download and extract an archive from [Releases](https://github.com/OliverChoi-iOS/redmine-cli/releases), verify it against `checksums.txt`, and place `redmine` (or `redmine.exe`) on PATH. Installation downloads become available after the first stable release is published. Checksums detect corrupted downloads; release signing is not configured.
+
+To uninstall, remove the installed binary. Config and cache files are kept.
 
 ### 2. Log in once
 
@@ -241,6 +226,15 @@ reopen_status = "New"
 
 ## Development
 
+Go 1.24 is the verified development toolchain; `go.mod` keeps Go 1.22 language compatibility. Install Go directly using the [Go installation guide](https://go.dev/doc/install), or use [mise](https://mise.jdx.dev/installing-mise.html):
+
+```bash
+brew install mise
+mise install go@1.24
+GOCACHE=/tmp/redmine-cli-go-cache mise x go@1.24 -- go build -o redmine ./cmd/redmine
+./redmine --version
+```
+
 The CLI is implemented with the Go standard library and uses fake Redmine servers in tests for the main command contracts.
 
 Go was chosen because this CLI is meant to be installed quickly and called reliably by agents across different environments. A single binary keeps runtime setup small, while Go's standard `net/http`, `encoding/json`, cross-compilation support, and `httptest` package are enough for a typed Redmine client, stable JSON contract, and fake Redmine server tests.
@@ -252,6 +246,22 @@ GOCACHE=/tmp/redmine-cli-go-cache mise x go@1.24 -- go run ./cmd/redmine --versi
 ```
 
 The implementation should keep the JSON output contract in `schema/output.schema.json` stable.
+
+### Publish a release
+
+Commit the release workflow and installers to `main`, then push a new stable version tag (replace `v0.1.0` with the next unused version):
+
+```bash
+git push origin main
+git tag v0.1.0
+git push origin v0.1.0
+```
+
+[Release Actions](https://github.com/OliverChoi-iOS/redmine-cli/actions/workflows/release.yml) tests on macOS, Linux, and Windows, builds six CGO-free binaries (darwin/linux/windows × amd64/arm64), and publishes archives, both installers, `checksums.txt`, and generated release notes. `redmine --version` reports the tag without `v`. Unix runs the full Go suite; Windows runs portable package tests, the version command, and the installer test because saved-auth permission tests require Unix. Only stable `vMAJOR.MINOR.PATCH` tags are supported.
+
+The workflow uses the built-in `GITHUB_TOKEN` with `contents: write`; no personal access token is needed. A failed publication may leave a draft release. Inspect it in GitHub Releases before retrying. Published releases are not overwritten.
+
+Run offline installer tests locally with `sh tests/install_test.sh` or, on Windows with Go installed, `./tests/install_test.ps1`.
 
 ## Troubleshooting
 
@@ -265,11 +275,9 @@ mise x go@1.24 -- go version
 
 ### `redmine: command not found`
 
-Install the built binary into a directory on `PATH`, then update `PATH` for the current shell:
+If you used the release installer, update `PATH` for the current shell:
 
 ```bash
-mkdir -p "$HOME/.local/bin"
-install -m 755 redmine "$HOME/.local/bin/redmine"
 export PATH="$HOME/.local/bin:$PATH"
 redmine --version
 ```
