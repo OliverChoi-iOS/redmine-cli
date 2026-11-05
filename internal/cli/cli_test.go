@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -169,6 +170,47 @@ func TestAuthLoginStoresAPIKeyFromStdin(t *testing.T) {
 	}
 	if cfg.URL != server.URL || cfg.APIKey != "secret-key" {
 		t.Fatalf("stored config = %#v", cfg)
+	}
+}
+
+func TestAuthLoginReLoginAndLogout(t *testing.T) {
+	t.Setenv("REDMINE_URL", "")
+	t.Setenv("REDMINE_API_KEY", "")
+	configPath := filepath.Join(t.TempDir(), "profile with spaces", "config.toml")
+	cacheDir := t.TempDir()
+	expectedKey := "first-test-key"
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/users/current.json" || r.Header.Get("X-Redmine-API-Key") != expectedKey {
+			http.Error(w, "unexpected request", http.StatusUnauthorized)
+			return
+		}
+		_, _ = w.Write([]byte(`{"user":{"id":1,"login":"tester"}}`))
+	}))
+	defer server.Close()
+	oldStdin := stdin
+	t.Cleanup(func() { stdin = oldStdin })
+	run := func(args ...string) {
+		t.Helper()
+		args = append(args, "--config", configPath, "--cache-dir", cacheDir, "--allow-insecure-http")
+		var stdout, stderr bytes.Buffer
+		if code := Run(args, &stdout, &stderr); code != output.ExitOK {
+			t.Fatalf("%v: exit=%d stdout=%s stderr=%s", args, code, &stdout, &stderr)
+		}
+		if strings.Contains(stdout.String()+stderr.String(), "first-test-key") || strings.Contains(stdout.String()+stderr.String(), "replacement-test-key") {
+			t.Fatal("auth command exposed a test credential")
+		}
+	}
+	stdin = strings.NewReader(expectedKey + "\n")
+	run("auth", "login", "--url", server.URL, "--stdin")
+	run("auth", "status")
+	expectedKey = "replacement-test-key"
+	stdin = strings.NewReader(expectedKey + "\n")
+	run("auth", "login", "--stdin")
+	run("auth", "status")
+	run("auth", "logout")
+	cfg, loaded, err := config.LoadFile(configPath)
+	if err != nil || !loaded || cfg.APIKey != "" || cfg.URL != server.URL {
+		t.Fatalf("logout must remove the key and retain URL: loaded=%t err=%v", loaded, err)
 	}
 }
 

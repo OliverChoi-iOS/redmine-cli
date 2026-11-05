@@ -176,7 +176,7 @@ func WriteFile(path string, cfg Config) error {
 	writeString(&b, "reopen_status", cfg.ReopenStatus)
 	writeString(&b, "api_key", cfg.APIKey)
 
-	tmp, err := os.CreateTemp(dir, ".config.toml.*.tmp")
+	tmp, err := createPrivateTemp(dir)
 	if err != nil {
 		return err
 	}
@@ -188,10 +188,6 @@ func WriteFile(path string, cfg Config) error {
 		}
 	}()
 
-	if err := tmp.Chmod(0o600); err != nil {
-		_ = tmp.Close()
-		return err
-	}
 	if _, err := tmp.Write([]byte(b.String())); err != nil {
 		_ = tmp.Close()
 		return err
@@ -207,7 +203,7 @@ func WriteFile(path string, cfg Config) error {
 		return err
 	}
 	cleanup = false
-	return os.Chmod(path, 0o600)
+	return nil
 }
 
 func validateConfigDir(dir string) error {
@@ -218,10 +214,7 @@ func validateConfigDir(dir string) error {
 	if !info.IsDir() {
 		return fmt.Errorf("config parent is not a directory")
 	}
-	if info.Mode().Perm()&0o022 != 0 {
-		return fmt.Errorf("config parent directory must not be group- or world-writable")
-	}
-	return nil
+	return validateConfigDirPermissions(dir, info)
 }
 
 func prepareConfigPath(path string) error {
@@ -238,10 +231,7 @@ func prepareConfigPath(path string) error {
 	if !info.Mode().IsRegular() {
 		return fmt.Errorf("config file must be a regular file")
 	}
-	if info.Mode().Perm()&0o077 != 0 {
-		return os.Chmod(path, 0o600)
-	}
-	return nil
+	return secureConfigFile(path)
 }
 
 func PublicMap(cfg Config, configPath string, configLoaded bool, apiKeySource string) map[string]any {

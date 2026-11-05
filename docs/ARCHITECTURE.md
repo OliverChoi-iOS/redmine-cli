@@ -61,7 +61,7 @@ Effective credential precedence:
 2. Environment variables
 3. Config file
 
-`auth login` stores the URL and API key in the config file with private file permissions. Environment variables and flags override stored credentials for one-off commands. The CLI currently supports one Redmine server. Multiple profiles and keychain storage are not supported yet.
+`auth login` stores the URL and API key in the config file with private file permissions (`0600` on Unix; a protected current-user-only DACL on Windows). Temporary files receive those permissions before any key is written. Windows config parents may be owned/writable by the current user, SYSTEM, and Administrators; other write grants are rejected. Environment variables and flags override stored credentials for one-off commands. The CLI currently supports one Redmine server. Multiple profiles and keychain storage are not supported yet.
 
 ### `internal/redmine`
 

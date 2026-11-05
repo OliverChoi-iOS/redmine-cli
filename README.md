@@ -49,7 +49,7 @@ redmine --version
 
 The default destination is `%LOCALAPPDATA%\redmine-cli\bin`. Add it to your user PATH for new terminals. Use `./install.ps1 -Version v0.1.0 -InstallDir C:\Tools\redmine` to customize installation. Follow your organization's PowerShell execution policy if script execution is restricted.
 
-Windows support is experimental: saved authentication currently requires Unix permission semantics. Use `REDMINE_URL` and a securely injected `REDMINE_API_KEY` instead of `auth login` on Windows.
+Windows supports `auth login`, `auth status`, and `auth logout`. Credentials are saved in `%APPDATA%\redmine-cli\config.toml` with a protected Windows ACL granting access only to the current user. The destination must support Windows ACLs (for example, NTFS); shared directories writable by other users are rejected. The installer and CLI do not require administrator privileges.
 
 You can also download and extract an archive from [Releases](https://github.com/OliverChoi-iOS/redmine-cli/releases), verify it against `checksums.txt`, and place `redmine` (or `redmine.exe`) on PATH. Installation downloads become available after the first stable release is published. Checksums detect corrupted downloads; release signing is not configured.
 
@@ -64,7 +64,7 @@ redmine auth login --url https://redmine.example.com
 redmine auth status --format pretty-json
 ```
 
-`auth login` verifies the API key and stores the URL and key in the CLI config file with `0600` permissions. A successful status response contains `"ok": true` and `"authenticated": true`.
+`auth login` verifies the API key and stores the URL and key in the CLI config file with `0600` permissions on macOS/Linux or a current-user-only ACL on Windows. A successful status response contains `"ok": true` and `"authenticated": true`.
 
 Redmine URLs must use `https://` by default. For a local test server only, pass `--allow-insecure-http` on that single command.
 
@@ -154,7 +154,7 @@ API references: [Time entries](https://www.redmine.org/projects/redmine/wiki/Res
 ## Limitations
 
 - HTTPS is required by default. `--allow-insecure-http` is a one-run local/test escape hatch and prints a warning because API keys may be sent over cleartext HTTP.
-- Credentials are stored in the CLI config file with `0600` permissions. OS keychain integration is not supported yet.
+- Credentials are stored in the CLI config file with `0600` permissions on macOS/Linux or a current-user-only ACL on Windows. This restricts file access; it does not encrypt the key. OS keychain integration is not supported yet.
 - One Redmine server/profile is supported. Multiple Redmine profiles are not supported yet.
 - File downloads, wiki attachments, and project Files uploads are not supported yet. `issue attach` uploads one file per invocation.
 - Admin APIs, repository APIs, and bulk/destructive operations are not supported yet. Time entry registration is supported; listing, editing, and deletion are not.
@@ -210,7 +210,7 @@ redmine issue list --limit 5 --format pretty-json
 
 Do not commit API keys in `.env` files, scripts, examples, command history, or process-visible arguments. Prefer `redmine auth login`, `REDMINE_API_KEY`, or `auth login --stdin` over passing literal values to `--api-key`. This CLI does not automatically load `.env` files.
 
-`redmine auth login` stores the URL and API key in the config file with `0600` permissions, similar to GitLab CLI file-based credential storage. `REDMINE_URL`, `REDMINE_API_KEY`, `--url`, and `--api-key` still override stored credentials for a single run. `--api-key` is an unsafe escape hatch because command-line arguments can appear in shell history and process listings. `redmine auth logout` removes the stored API key.
+`redmine auth login` stores the URL and API key in a private config file (`0600` on macOS/Linux; a protected current-user-only ACL on Windows), similar to GitLab CLI file-based credential storage. `REDMINE_URL`, `REDMINE_API_KEY`, `--url`, and `--api-key` still override stored credentials for a single run. `--api-key` is an unsafe escape hatch because command-line arguments can appear in shell history and process listings. `redmine auth logout` removes the stored API key.
 
 The following example shows the non-secret settings. `auth login` adds the API key; do not add a literal key manually.
 
@@ -257,7 +257,7 @@ git tag v0.1.0
 git push origin v0.1.0
 ```
 
-[Release Actions](https://github.com/OliverChoi-iOS/redmine-cli/actions/workflows/release.yml) tests on macOS, Linux, and Windows, builds six CGO-free binaries (darwin/linux/windows × amd64/arm64), and publishes archives, both installers, `checksums.txt`, and generated release notes. `redmine --version` reports the tag without `v`. Unix runs the full Go suite; Windows runs portable package tests, the version command, and the installer test because saved-auth permission tests require Unix. Only stable `vMAJOR.MINOR.PATCH` tags are supported.
+[Release Actions](https://github.com/OliverChoi-iOS/redmine-cli/actions/workflows/release.yml) runs the full Go suite and installer tests on macOS, Linux, and Windows for pushes to `main` and pull requests. A stable `vMAJOR.MINOR.PATCH` tag additionally builds six CGO-free binaries (darwin/linux/windows × amd64/arm64) and publishes archives, both installers, `checksums.txt`, and generated release notes. `redmine --version` reports the tag without `v`.
 
 The workflow uses the built-in `GITHUB_TOKEN` with `contents: write`; no personal access token is needed. A failed publication may leave a draft release. Inspect it in GitHub Releases before retrying. Published releases are not overwritten.
 

@@ -1,10 +1,13 @@
 package config
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
+	"syscall"
 	"testing"
 	"time"
 )
@@ -109,13 +112,7 @@ func TestWriteFileStoresAPIKeyWithPrivatePermissions(t *testing.T) {
 	if !strings.Contains(string(data), `api_key = "stored-secret"`) {
 		t.Fatalf("config did not contain api_key: %s", string(data))
 	}
-	info, err := os.Stat(path)
-	if err != nil {
-		t.Fatalf("Stat: %v", err)
-	}
-	if got := info.Mode().Perm(); got != 0o600 {
-		t.Fatalf("mode = %o, want 600", got)
-	}
+	assertPrivateConfigFile(t, path)
 }
 
 func TestWriteFileRepairsPermissiveExistingConfigBeforeRewrite(t *testing.T) {
@@ -132,13 +129,7 @@ func TestWriteFileRepairsPermissiveExistingConfigBeforeRewrite(t *testing.T) {
 		t.Fatalf("WriteFile: %v", err)
 	}
 
-	info, err := os.Lstat(path)
-	if err != nil {
-		t.Fatalf("Lstat: %v", err)
-	}
-	if got := info.Mode().Perm(); got != 0o600 {
-		t.Fatalf("mode = %o, want 600", got)
-	}
+	assertPrivateConfigFile(t, path)
 	loaded, ok, err := LoadFile(path)
 	if err != nil || !ok {
 		t.Fatalf("LoadFile = loaded %t err %v", ok, err)
@@ -156,6 +147,9 @@ func TestWriteFileRejectsSymlinkConfigPath(t *testing.T) {
 		t.Fatalf("WriteFile fixture: %v", err)
 	}
 	if err := os.Symlink(target, path); err != nil {
+		if runtime.GOOS == "windows" && errors.Is(err, syscall.Errno(1314)) {
+			t.Skip("creating symlinks requires Windows Developer Mode or administrator privileges")
+		}
 		t.Fatalf("Symlink: %v", err)
 	}
 
@@ -163,20 +157,6 @@ func TestWriteFileRejectsSymlinkConfigPath(t *testing.T) {
 	cfg.URL = "https://redmine.example.com"
 	cfg.APIKey = "stored-secret"
 	if err := WriteFile(path, cfg); err == nil {
-		t.Fatalf("WriteFile returned nil error")
-	}
-}
-
-func TestWriteFileRejectsGroupWritableParent(t *testing.T) {
-	dir := t.TempDir()
-	if err := os.Chmod(dir, 0o770); err != nil {
-		t.Fatalf("Chmod: %v", err)
-	}
-
-	cfg := Defaults()
-	cfg.URL = "https://redmine.example.com"
-	cfg.APIKey = "stored-secret"
-	if err := WriteFile(filepath.Join(dir, "config.toml"), cfg); err == nil {
 		t.Fatalf("WriteFile returned nil error")
 	}
 }

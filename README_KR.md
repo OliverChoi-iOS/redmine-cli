@@ -49,7 +49,7 @@ redmine --version
 
 기본 설치 위치는 `%LOCALAPPDATA%\redmine-cli\bin`입니다. 새 터미널에서도 사용하려면 사용자 PATH에 이 경로를 추가하세요. `./install.ps1 -Version v0.1.0 -InstallDir C:\Tools\redmine`으로 버전과 경로를 지정할 수 있습니다. 스크립트 실행이 제한된 환경에서는 조직의 PowerShell 실행 정책을 따르세요.
 
-Windows 지원은 실험적입니다. 현재 인증 저장 코드는 Unix 파일 권한을 전제로 하므로, Windows에서는 `auth login` 대신 `REDMINE_URL`과 안전하게 주입한 `REDMINE_API_KEY`를 사용하세요.
+Windows에서도 `auth login`, `auth status`, `auth logout`을 사용할 수 있습니다. 인증 정보는 `%APPDATA%\redmine-cli\config.toml`에 저장되며, 현재 사용자만 접근하도록 보호된 Windows ACL을 적용합니다. 저장 위치는 NTFS처럼 Windows ACL을 지원해야 하며 다른 사용자가 쓸 수 있는 공유 디렉터리는 거부합니다. 설치와 CLI 실행에 관리자 권한은 필요하지 않습니다.
 
 [Releases](https://github.com/OliverChoi-iOS/redmine-cli/releases)에서 압축 파일을 직접 다운로드하고 `checksums.txt`와 대조한 뒤 `redmine` 또는 `redmine.exe`를 PATH에 설치할 수도 있습니다. 다운로드는 첫 정식 릴리스를 게시한 후 사용할 수 있습니다. 체크섬은 다운로드 손상을 검출하며 릴리스 서명은 아직 구성하지 않았습니다.
 
@@ -64,7 +64,7 @@ redmine auth login --url https://redmine.example.com
 redmine auth status --format pretty-json
 ```
 
-`auth login`은 API 키를 검증한 뒤 URL과 키를 `0600` 권한의 CLI 설정 파일에 저장합니다. 성공한 status 응답에는 `"ok": true`와 `"authenticated": true`가 포함됩니다.
+`auth login`은 API 키를 검증한 뒤 URL과 키를 CLI 설정 파일에 저장합니다. macOS/Linux에서는 `0600` 권한, Windows에서는 현재 사용자 전용 ACL을 적용합니다. 성공한 status 응답에는 `"ok": true`와 `"authenticated": true`가 포함됩니다.
 
 Redmine URL은 기본적으로 `https://`를 사용해야 합니다. 로컬 테스트 서버에서만 해당 명령 1회에 `--allow-insecure-http`를 전달하세요.
 
@@ -154,7 +154,7 @@ redmine time create --issue 123 --hours 1.5 --activity-id 9 --spent-on 2026-11-0
 ## 제약사항
 
 - HTTPS가 기본 요구사항입니다. `--allow-insecure-http`는 로컬/테스트용 1회성 예외이며, API 키가 평문 HTTP로 전송될 수 있다는 경고를 출력합니다.
-- 인증 정보는 `0600` 권한의 CLI 설정 파일에 저장됩니다. OS keychain 연동은 아직 지원하지 않습니다.
+- 인증 정보는 macOS/Linux에서 `0600` 권한, Windows에서 현재 사용자 전용 ACL이 적용된 CLI 설정 파일에 저장됩니다. 파일 접근을 제한하며 키를 암호화하지는 않습니다. OS keychain 연동은 아직 지원하지 않습니다.
 - Redmine 서버/프로필은 하나만 지원합니다. 여러 Redmine 프로필은 아직 지원하지 않습니다.
 - 파일 다운로드, 위키 첨부, 프로젝트의 ‘파일’ 등록은 아직 지원하지 않습니다. `issue attach`는 한 번에 파일 하나를 업로드합니다.
 - Admin API, repository API, bulk/destructive operation은 아직 지원하지 않습니다. 소요시간 등록은 지원하며 내역 조회·수정·삭제는 지원하지 않습니다.
@@ -210,7 +210,7 @@ redmine issue list --limit 5 --format pretty-json
 
 API 키를 `.env` 파일, 스크립트, 예시, 명령 기록, 프로세스 인자에 남기지 마세요. 실제 값을 `--api-key`에 직접 전달하는 것보다 `redmine auth login`, `REDMINE_API_KEY`, 또는 `auth login --stdin`을 선호하세요. 이 CLI는 `.env` 파일을 자동으로 로드하지 않습니다.
 
-`redmine auth login`은 GitLab CLI의 파일 기반 인증 정보 저장 방식과 비슷하게 URL과 API 키를 `0600` 권한의 설정 파일에 저장합니다. `REDMINE_URL`, `REDMINE_API_KEY`, `--url`, `--api-key`는 저장된 인증 정보를 해당 실행 1회에만 override합니다. `--api-key`는 명령행 인자가 shell history와 process listing에 노출될 수 있으므로 안전하지 않은 escape hatch입니다. `redmine auth logout`은 저장된 API 키를 제거합니다.
+`redmine auth login`은 GitLab CLI의 파일 기반 인증 정보 저장 방식과 비슷하게 URL과 API 키를 비공개 설정 파일에 저장합니다(macOS/Linux: `0600`, Windows: 상속을 차단한 현재 사용자 전용 ACL). `REDMINE_URL`, `REDMINE_API_KEY`, `--url`, `--api-key`는 저장된 인증 정보를 해당 실행 1회에만 override합니다. `--api-key`는 명령행 인자가 shell history와 process listing에 노출될 수 있으므로 안전하지 않은 escape hatch입니다. `redmine auth logout`은 저장된 API 키를 제거합니다.
 
 다음 예시는 secret이 아닌 설정 값만 보여줍니다. API 키는 `auth login`이 추가하므로 직접 literal 값을 넣지 마세요.
 
@@ -257,7 +257,7 @@ git tag v0.1.0
 git push origin v0.1.0
 ```
 
-[Release Actions](https://github.com/OliverChoi-iOS/redmine-cli/actions/workflows/release.yml)가 macOS·Linux·Windows에서 테스트하고, CGO 없이 6종 바이너리(darwin/linux/windows × amd64/arm64)를 빌드합니다. 압축 파일, 두 설치 스크립트, `checksums.txt`, 자동 생성 릴리스 노트를 게시하며 `redmine --version`은 태그에서 `v`를 뺀 값을 출력합니다. Unix에서는 전체 Go 테스트를 실행하고, Windows에서는 Unix 권한을 전제로 하는 인증 저장 테스트 대신 이식 가능한 패키지·버전 명령·설치 스크립트를 검증합니다. `vMAJOR.MINOR.PATCH` 형식의 정식 버전만 지원합니다.
+[Release Actions](https://github.com/OliverChoi-iOS/redmine-cli/actions/workflows/release.yml)는 `main` 푸시와 PR에서 macOS·Linux·Windows의 전체 Go 테스트와 설치 테스트를 실행합니다. `vMAJOR.MINOR.PATCH` 형식의 정식 버전 태그를 푸시하면 추가로 CGO 없는 6종 바이너리(darwin/linux/windows × amd64/arm64), 압축 파일, 두 설치 스크립트, `checksums.txt`, 자동 생성 릴리스 노트를 게시합니다. `redmine --version`은 태그에서 `v`를 뺀 값을 출력합니다.
 
 워크플로는 `contents: write` 권한의 기본 `GITHUB_TOKEN`을 사용하므로 별도 PAT가 필요하지 않습니다. 게시 도중 실패하면 초안 릴리스가 남을 수 있으니 GitHub Releases에서 확인한 뒤 재시도하세요. 게시된 릴리스를 덮어쓰지는 않습니다.
 

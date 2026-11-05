@@ -52,7 +52,7 @@ redmine auth login --url https://redmine.example.com
 redmine auth status --format pretty-json
 ```
 
-`auth login` verifies the API key with Redmine and stores the URL plus API key in the CLI config file with `0600` permissions. After login, `REDMINE_URL` and `REDMINE_API_KEY` are not required for normal commands.
+`auth login` verifies the API key with Redmine and stores the URL plus API key in the CLI config file with `0600` permissions on macOS/Linux or a protected current-user-only ACL on Windows. The Windows default path is `%APPDATA%\redmine-cli\config.toml`. After login, `REDMINE_URL` and `REDMINE_API_KEY` are not required for normal commands.
 
 Non-interactive setup with the API key on stdin:
 
