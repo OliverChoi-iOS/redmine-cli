@@ -93,10 +93,16 @@ redmine wiki list --project mobile --format pretty-json
 redmine wiki get Guide --project mobile --include attachments --format pretty-json
 redmine wiki get Guide --project mobile --page-version 3 --format pretty-json
 redmine wiki put Guide --project mobile --text-file guide.redmine --comments "Update guide" --page-version 3 --dry-run --format pretty-json
+redmine wiki create NewPage --project mobile --text-file page.redmine --parent-title Guide --dry-run --format pretty-json
+redmine wiki update Guide --project mobile --text-file guide.redmine --page-version 3 --dry-run --format pretty-json
+redmine wiki delete OldPage --project mobile --dry-run --format pretty-json
+redmine wiki delete OldPage --project mobile --confirm OldPage --page-version 2 --format pretty-json
 redmine issue attach 123 --file evidence.png --description "Reproduction" --dry-run --format pretty-json
 ```
 
 Remove `--dry-run` to write. Wiki `--project` accepts an identifier or numeric ID and defaults to `default_project`. `wiki put` creates a missing page or replaces its text. Use `--text` or `--text-file` for Redmine wiki syntax. Pass the version read previously as `--page-version` to protect against stale edits; a mismatch returns `conflict` (exit 7). Without it, the command fetches the current version just before writing. `--parent-title TITLE` changes the parent; an empty title makes a root page. Omission preserves the existing parent. Creation uses the same PUT endpoint as updating and can race with another writer.
+
+`wiki create` returns `conflict` (exit 7) when the page exists and rejects `--page-version`. `wiki update` returns `not_found` (exit 5) when the page is missing. `wiki delete` (risk `high`) requires `--confirm` with the exact title, otherwise `validation_failed`. It reads the page with attachments first, returns it as `data.before`, and with `--page-version` returns `conflict` without deleting if the version differs. Deletion removes history and attachments; child pages become root pages.
 
 `issue attach` accepts one non-empty regular file. `--filename` changes the remote name and `--content-type` overrides the inferred MIME type. Size and permission limits come from Redmine. If the issue update fails after upload, the result reports `upload_completed: true` and `attachment_link_confirmed: false` in `error.details`; inspect the issue before retrying because the original update may have succeeded despite a lost response. Retrying uploads again and can duplicate attachments; unused uploads may remain on the server.
 

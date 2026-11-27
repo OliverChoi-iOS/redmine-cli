@@ -125,11 +125,13 @@ Commands carry a risk level in `schema/commands.json`.
 
 - Low risk: immediate execution.
 - Medium risk: immediate execution plus before/after when possible.
-- High risk: deferred or explicit confirmation in future versions.
+- High risk: explicit confirmation required (`wiki delete --confirm TITLE`); other high-risk operations are deferred.
 
 `--dry-run` validates inputs and name resolution without writing.
 
-Wiki `put` creates or updates a page. Existing pages are read before writing, and their version is sent with the update; an explicit `--page-version` protects changes made since a caller's earlier read. An omitted parent is preserved. Because creation uses the same PUT endpoint, creation can race with another writer.
+Wiki `put` creates or updates a page. Existing pages are read before writing, and their version is sent with the update; an explicit `--page-version` protects changes made since a caller's earlier read. An omitted parent is preserved. Because creation uses the same PUT endpoint, creation can race with another writer. Wiki `create` and `update` add an existence check to the same flow: `create` refuses an existing page with `conflict`, and `update` refuses a missing page with `not_found`.
+
+Wiki `delete` requires `--confirm` with the exact title, reads the page (including attachments) before deleting, and returns it as `before`. An explicit `--page-version` that no longer matches the current version aborts with `conflict` before the DELETE request. Redmine removes history and attachments; child pages become root pages.
 
 Issue attachments require two writes: upload bytes to obtain a token, then update the issue with that token. The CLI reports an uploaded file whose link was not confirmed; it does not automatically retry either write. Both wiki and attachment dry-runs validate local inputs without network requests. After a successful write, a failed final read produces a warning while preserving success.
 

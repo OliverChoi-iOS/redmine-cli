@@ -65,6 +65,9 @@ var commandFlags = map[string]map[string]bool{
 	"wiki list":       {"project": true},
 	"wiki get":        {"project": true, "page-version": true, "include": true},
 	"wiki put":        {"project": true, "text": true, "text-file": true, "comments": true, "parent-title": true, "page-version": true},
+	"wiki create":     {"project": true, "text": true, "text-file": true, "comments": true, "parent-title": true},
+	"wiki update":     {"project": true, "text": true, "text-file": true, "comments": true, "parent-title": true, "page-version": true},
+	"wiki delete":     {"project": true, "confirm": true, "page-version": true},
 	"time create":     {"issue": true, "hours": true, "activity-id": true, "spent-on": true, "comments": true, "comments-file": true},
 	"time activities": {},
 	"project list": {
@@ -288,7 +291,7 @@ func (a *app) dispatch() output.Envelope {
 		return a.handleIssueLink(context.Background())
 	case "issue attach":
 		return a.handleIssueAttach(context.Background())
-	case "wiki list", "wiki get", "wiki put":
+	case "wiki list", "wiki get", "wiki put", "wiki create", "wiki update", "wiki delete":
 		return a.handleWiki(context.Background())
 	case "time create":
 		return a.handleTimeCreate(context.Background())
@@ -531,7 +534,7 @@ Usage:
 
 Resources:
   issue      list, get, create, update, comment, assign, transition, close, reopen, link, attach
-  wiki       list, get, put (create or update)
+  wiki       list, get, create, update, put (create or update), delete
   time       create, activities
   project    list, get
   user       me, search
@@ -553,9 +556,14 @@ Global flags:
 Wiki and attachments:
   wiki list --project IDENTIFIER_OR_ID
   wiki get TITLE --project IDENTIFIER_OR_ID [--page-version N] [--include attachments]
+  wiki create TITLE --project IDENTIFIER_OR_ID --text-file PATH [--comments TEXT] [--parent-title TITLE] [--dry-run]
+  wiki update TITLE --project IDENTIFIER_OR_ID --text-file PATH [--comments TEXT] [--page-version N] [--dry-run]
   wiki put TITLE --project IDENTIFIER_OR_ID --text-file PATH [--comments TEXT] [--page-version N] [--dry-run]
+  wiki delete TITLE --project IDENTIFIER_OR_ID --confirm TITLE [--page-version N] [--dry-run]
   issue attach ID --file PATH [--filename NAME] [--description TEXT] [--content-type TYPE] [--dry-run]
+  wiki create fails with conflict if the page exists; wiki update fails with not_found if it is missing.
   wiki put creates missing pages and checks the current version when updating existing pages.
+  wiki delete is irreversible (history and attachments are removed) and requires --confirm with the exact title.
 
 Spent time:
   time activities

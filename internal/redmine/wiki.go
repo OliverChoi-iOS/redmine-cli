@@ -54,3 +54,7 @@ func (c *Client) GetWikiPage(ctx context.Context, project, title string, version
 func (c *Client) PutWikiPage(ctx context.Context, project, title string, page map[string]any) error {
 	return c.Do(ctx, http.MethodPut, wikiPath(project)+url.PathEscape(title)+".json", nil, map[string]any{"wiki_page": page}, nil)
 }
+
+func (c *Client) DeleteWikiPage(ctx context.Context, project, title string) error {
+	return c.Do(ctx, http.MethodDelete, wikiPath(project)+url.PathEscape(title)+".json", nil, nil, nil)
+}

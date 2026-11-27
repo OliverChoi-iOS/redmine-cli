@@ -130,9 +130,11 @@ Use `--message-file` or `--description-file` for long text. Keep files free of A
 
 ## Wiki Pages and Attachments
 
-Use `wiki list/get/put` for wiki work and `issue attach` for file uploads. Read [references/commands.md](references/commands.md#wiki-pages-and-attachments) for syntax and failure handling.
+Use `wiki list/get/create/update/put/delete` for wiki work and `issue attach` for file uploads. Read [references/commands.md](references/commands.md#wiki-pages-and-attachments) for syntax and failure handling.
 
-`wiki put` replaces page text or creates a missing page. When editing content read earlier, pass its `--page-version` to detect stale edits. If the server reports `conflict`, re-read and reconcile the content before writing again.
+`wiki put` replaces page text or creates a missing page. When editing content read earlier, pass its `--page-version` to detect stale edits. If the server reports `conflict`, re-read and reconcile the content before writing again. Prefer `wiki create` for new pages (it refuses to overwrite an existing page) and `wiki update` for edits (it refuses to create a page from a typo).
+
+`wiki delete` is irreversible: it removes the page history and attachments. Only delete when the user explicitly asked for it. Run `--dry-run` first, then pass `--confirm` with the exact title and the `--page-version` you read. Keep `data.before` from the result in case the content must be restored.
 
 Uploading and linking to the issue are separate writes. If linking is not confirmed, inspect the issue before retrying; retrying uploads again and can duplicate an attachment after a lost response. An after-state fetch warning alone does not mean the write failed.
 

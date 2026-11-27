@@ -46,7 +46,10 @@ Wiki commands:
 
 - `wiki list`
 - `wiki get`
+- `wiki create` (fails if the page exists)
+- `wiki update` (fails if the page is missing)
 - `wiki put` (create or update)
+- `wiki delete` (high risk, requires `--confirm TITLE`)
 
 Spent-time commands:
 
@@ -81,7 +84,7 @@ Configuration commands:
 - Admin APIs
 - Time entry listing, editing, deletion, project-only entries, and logging for another user
 - Bulk operations
-- Destructive operations
+- Destructive operations other than `wiki delete`
 - Markdown conversion
 - Full workflow transition computation
 
@@ -160,6 +163,7 @@ Low risk:
 - `issue link`
 - `issue attach`
 - `time create`
+- `wiki create`
 
 Medium risk:
 
@@ -169,13 +173,14 @@ Medium risk:
 - `issue close`
 - `issue reopen`
 - `wiki put`
+- `wiki update`
 
 High risk:
 
 - Delete operations
 - Destructive bulk updates
 
-High-risk operations are not supported.
+The only supported high-risk operation is `wiki delete`. It requires `--confirm` with the exact page title, returns the deleted page as `before`, and accepts `--page-version` to refuse deletion of a page changed since it was read. Other high-risk operations are not supported.
 
 All write commands should support `--dry-run`.
 

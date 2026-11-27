@@ -93,7 +93,10 @@ redmine issue list --limit 5 --format pretty-json
 - `redmine issue attach`
 - `redmine wiki list`
 - `redmine wiki get`
+- `redmine wiki create`
+- `redmine wiki update`
 - `redmine wiki put`
+- `redmine wiki delete`
 - `redmine time create`
 - `redmine time activities`
 - `redmine project list`
@@ -121,15 +124,23 @@ redmine wiki get "설치_가이드" --project mobile --include attachments
 redmine wiki put "설치_가이드" --project mobile --text-file guide.redmine --comments "설치 절차 갱신" --dry-run
 # --dry-run을 빼면 페이지를 생성하거나 수정합니다.
 redmine wiki put "설치_가이드" --project mobile --text-file guide.redmine --page-version 4
+redmine wiki create "릴리스_노트" --project mobile --text-file notes.redmine --parent-title "설치_가이드"
+redmine wiki update "릴리스_노트" --project mobile --text-file notes.redmine --page-version 1
+redmine wiki delete "릴리스_노트" --project mobile --dry-run
+redmine wiki delete "릴리스_노트" --project mobile --confirm "릴리스_노트" --page-version 2
 redmine issue attach 123 --file evidence.png --description "재현 화면" --dry-run
 # --dry-run을 빼면 파일을 업로드하고 이슈에 첨부합니다.
 ```
 
 `wiki put`은 Redmine 위키 문법의 본문을 변환 없이 전송합니다. 페이지가 없으면 생성하고, 있으면 본문을 교체합니다. 수정 시 현재 버전을 조회해 함께 전송하므로 명령 실행 중 발생한 동시 수정을 감지합니다. 이전에 읽은 뒤 발생한 변경까지 보호하려면 읽었던 버전을 `--page-version N`으로 지정하세요. 버전이 다르면 `conflict` 오류와 종료 코드 7을 반환합니다. `wiki get --page-version N`은 과거 버전을 조회합니다. 기존 상위 페이지는 유지되며, `--parent-title`로 바꾸거나 `--parent-title ""`로 루트 페이지로 만들 수 있습니다. 생성과 수정이 같은 PUT API를 사용하므로 새 페이지 생성 시 다른 작성자와의 경합 가능성은 남아 있습니다.
 
+`wiki create`와 `wiki update`는 `put`의 엄격한 버전입니다. `create`는 페이지가 이미 있으면 `conflict`(종료 코드 7)를 반환하며 `--page-version`을 받지 않습니다. `update`는 페이지가 없으면 `not_found`(종료 코드 5)를 반환합니다. 그 외 동작은 `put`과 같습니다.
+
+`wiki delete`는 유일한 고위험 명령입니다. Redmine은 페이지와 변경 이력, 첨부파일을 영구 삭제하며 하위 페이지는 루트 페이지가 됩니다. 실제 실행에는 정확한 제목을 `--confirm`으로 전달해야 합니다. 삭제 전에 페이지를 첨부파일 정보와 함께 조회해 `data.before`로 반환하므로 마지막 본문을 수동으로 복구할 수 있습니다. `--page-version N`을 지정하면 그 사이 페이지가 바뀐 경우 `conflict`로 삭제를 거부합니다. `--dry-run`은 요청을 보내지 않습니다.
+
 `issue attach`는 비어 있지 않은 일반 파일 하나를 업로드합니다. `--filename`으로 서버에 저장할 이름을 지정하고, `--content-type`으로 확장자에서 추론한 MIME 형식을 덮어쓸 수 있습니다. 추론할 수 없으면 `application/octet-stream`을 사용합니다. 서버의 파일 크기 제한과 권한이 적용됩니다. Redmine 7.1 이상은 서버에서 파일 형식을 감지합니다. 업로드 후 이슈 연결이 실패하면 `error.details.upload_completed`와 `attachment_link_confirmed: false`를 반환합니다. 응답 유실로 이미 첨부됐을 수도 있으므로 재시도 전에 이슈를 확인하세요. 재실행은 파일을 다시 업로드하며, 연결 실패 시 서버에 미사용 업로드가 남을 수 있습니다.
 
-두 쓰기 명령의 `--dry-run`은 서버에 접속하지 않고 로컬 입력만 검증합니다. 서버 권한, 자동 버전 조회, 기존 상위 페이지 확인은 실제 실행 시 수행합니다. 쓰기 성공 후에는 가능한 경우 `before`와 `after`를 반환합니다. 마지막 재조회만 실패했다면 `ok: true`와 경고를 반환하므로 결과 확인을 위해 쓰기를 반복하지 마세요.
+위키와 첨부 쓰기 명령의 `--dry-run`은 서버에 접속하지 않고 로컬 입력만 검증합니다. 서버 권한, 자동 버전 조회, 기존 상위 페이지 확인은 실제 실행 시 수행합니다. 쓰기 성공 후에는 가능한 경우 `before`와 `after`를 반환합니다. 마지막 재조회만 실패했다면 `ok: true`와 경고를 반환하므로 결과 확인을 위해 쓰기를 반복하지 마세요.
 
 공식 API 문서: [위키 페이지](https://www.redmine.org/projects/redmine/wiki/Rest_WikiPages), [파일 첨부](https://www.redmine.org/projects/redmine/wiki/Rest_api#Attaching-files).
 
