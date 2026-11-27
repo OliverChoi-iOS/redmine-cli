@@ -89,10 +89,28 @@
       "flags": ["--project", "--page-version", "--include"]
     },
     {
+      "name": "wiki.create",
+      "argv": ["wiki", "create", "<title>"],
+      "risk": "low",
+      "flags": ["--project", "--text", "--text-file", "--comments", "--parent-title", "--dry-run"]
+    },
+    {
+      "name": "wiki.update",
+      "argv": ["wiki", "update", "<title>"],
+      "risk": "medium",
+      "flags": ["--project", "--text", "--text-file", "--comments", "--parent-title", "--page-version", "--dry-run"]
+    },
+    {
       "name": "wiki.put",
       "argv": ["wiki", "put", "<title>"],
       "risk": "medium",
       "flags": ["--project", "--text", "--text-file", "--comments", "--parent-title", "--page-version", "--dry-run"]
+    },
+    {
+      "name": "wiki.delete",
+      "argv": ["wiki", "delete", "<title>"],
+      "risk": "high",
+      "flags": ["--project", "--confirm", "--page-version", "--dry-run"]
     },
     {
       "name": "time.create",

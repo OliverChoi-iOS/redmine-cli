@@ -93,7 +93,10 @@ Included:
 - `redmine issue attach`
 - `redmine wiki list`
 - `redmine wiki get`
+- `redmine wiki create`
+- `redmine wiki update`
 - `redmine wiki put`
+- `redmine wiki delete`
 - `redmine time create`
 - `redmine time activities`
 - `redmine project list`
@@ -121,15 +124,23 @@ redmine wiki get "GettingStarted" --project mobile --include attachments
 redmine wiki put "GettingStarted" --project mobile --text-file guide.redmine --comments "Update setup" --dry-run
 # Remove --dry-run to create or update the page.
 redmine wiki put "GettingStarted" --project mobile --text-file guide.redmine --page-version 4
+redmine wiki create "ReleaseNotes" --project mobile --text-file notes.redmine --parent-title "GettingStarted"
+redmine wiki update "ReleaseNotes" --project mobile --text-file notes.redmine --page-version 1
+redmine wiki delete "ReleaseNotes" --project mobile --dry-run
+redmine wiki delete "ReleaseNotes" --project mobile --confirm "ReleaseNotes" --page-version 2
 redmine issue attach 123 --file evidence.png --description "Reproduction screenshot" --dry-run
 # Remove --dry-run to upload and attach the file.
 ```
 
 `wiki put` sends the supplied text as Redmine wiki syntax without conversion. It creates missing pages and replaces existing page text. When updating, it fetches and sends the current version to detect concurrent edits during the command. Pass the version you originally read as `--page-version N` to also protect edits made since that read; a stale version returns `conflict` (exit 7). `wiki get --page-version N` reads historical content. Existing parent pages are preserved unless `--parent-title` is supplied; `--parent-title ""` makes a root page. An initial create can race with another writer because the API uses the same PUT endpoint for creation and updates.
 
+`wiki create` and `wiki update` are strict variants of `put`: `create` returns `conflict` (exit 7) if the page already exists and does not accept `--page-version`; `update` returns `not_found` (exit 5) if the page is missing. Otherwise they behave like `put`.
+
+`wiki delete` is the only high-risk command. Redmine permanently removes the page, its history, and its attachments; child pages become root pages. Execution requires `--confirm` with the exact title. The page is read first (with attachments) and returned as `data.before` so its last text can be recovered manually. Passing `--page-version N` refuses the delete with `conflict` if the page changed since it was read. `--dry-run` makes no request.
+
 `issue attach` requires a non-empty regular file and uploads one file per command. `--filename` changes its remote name; `--content-type` overrides the MIME type inferred from the extension (otherwise `application/octet-stream`). Server size limits and permissions apply. Redmine 7.1+ detects content types itself. Uploading and linking are separate requests: a linking error includes `error.details.upload_completed` and `attachment_link_confirmed: false`. Check the issue before retrying, since a retry uploads again and may duplicate an attachment if the original response was lost. A failed link may leave an unused upload on the server.
 
-Both write commands validate local input without contacting Redmine under `--dry-run`; server permissions, the automatic wiki version, and existing parent are checked during execution. Successful writes return `before`/`after` where available. If only the final read fails, `ok` remains true with a warning; do not repeat the write just to fetch its result.
+Wiki and attachment write commands validate local input without contacting Redmine under `--dry-run`; server permissions, the automatic wiki version, and existing parent are checked during execution. Successful writes return `before`/`after` where available. If only the final read fails, `ok` remains true with a warning; do not repeat the write just to fetch its result.
 
 API references: [Wiki pages](https://www.redmine.org/projects/redmine/wiki/Rest_WikiPages), [attaching files](https://www.redmine.org/projects/redmine/wiki/Rest_api#Attaching-files).
 
