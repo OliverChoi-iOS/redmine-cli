@@ -1,6 +1,6 @@
 ---
 name: redmine-cli-agent
-description: Configure and use this repository's agent-first Redmine CLI safely. Use when Codex needs to build the local `redmine` binary, manage authentication, work with Redmine issues and their file attachments, list/read/write wiki pages, log spent time, discover time activities, sync metadata, resolve names, or handle JSON envelopes, pagination, dry-runs, warnings, stable error codes, and Redmine CLI/API failures.
+description: Configure and use this repository's agent-first Redmine CLI safely. Use when Codex needs to build the local `redmine` binary, manage authentication, work with Redmine issues and their file attachments, list, read, create, update, and delete wiki pages, log spent time, discover time activities, sync metadata, resolve names, or handle JSON envelopes, pagination, dry-runs, warnings, stable error codes, and Redmine CLI/API failures.
 ---
 
 # Redmine CLI Agent
